@@ -18,12 +18,21 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (credentials) => {
-    // 🔌 Replace with real API call later
+    // 🔌 Replace with real backend call
     const mockUser = { id: 1, email: credentials.email, role: 'user', name: 'Demo User' };
     setUser(mockUser);
     localStorage.setItem('joblify_user', JSON.stringify(mockUser));
     localStorage.setItem('joblify_token', 'mock-jwt-token');
     axios.defaults.headers.common['Authorization'] = 'Bearer mock-jwt-token';
+  };
+
+  const loginWithGoogle = async () => {
+    // 🔌 Replace with Firebase/Auth0 SDK in production
+    const mockUser = { id: 'google-1', email: 'user@gmail.com', role: 'user', name: 'Google User', provider: 'google' };
+    setUser(mockUser);
+    localStorage.setItem('joblify_user', JSON.stringify(mockUser));
+    localStorage.setItem('joblify_token', 'mock-google-jwt-token');
+    axios.defaults.headers.common['Authorization'] = 'Bearer mock-google-jwt-token';
   };
 
   const logout = () => {
@@ -34,7 +43,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );
