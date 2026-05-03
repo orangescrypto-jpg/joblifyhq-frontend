@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Initialize auth state from localStorage
   useEffect(() => {
     const token = localStorage.getItem('joblify_token');
     const storedUser = localStorage.getItem('joblify_user');
@@ -17,17 +18,25 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // 🔐 DEV MODE: Admin login bypass for testing
   const login = async (credentials) => {
-    // 🔌 Replace with real backend call
-    const mockUser = { id: 1, email: credentials.email, role: 'user', name: 'Demo User' };
+    const isAdmin = credentials.email === 'admin@joblifyhq.com';
+    
+    const mockUser = { 
+      id: isAdmin ? 'admin-1' : 1, 
+      email: credentials.email, 
+      role: isAdmin ? 'admin' : 'user', 
+      name: isAdmin ? 'Admin User' : 'Demo User',
+      tier: isAdmin ? 'elite' : 'free'
+    };
+    
     setUser(mockUser);
     localStorage.setItem('joblify_user', JSON.stringify(mockUser));
-    localStorage.setItem('joblify_token', 'mock-jwt-token');
-    axios.defaults.headers.common['Authorization'] = 'Bearer mock-jwt-token';
+    localStorage.setItem('joblify_token', isAdmin ? 'mock-admin-jwt' : 'mock-jwt-token');
+    axios.defaults.headers.common['Authorization'] = `Bearer ${isAdmin ? 'mock-admin-jwt' : 'mock-jwt-token'}`;
   };
 
   const loginWithGoogle = async () => {
-    // 🔌 Replace with Firebase/Auth0 SDK in production
     const mockUser = { id: 'google-1', email: 'user@gmail.com', role: 'user', name: 'Google User', provider: 'google' };
     setUser(mockUser);
     localStorage.setItem('joblify_user', JSON.stringify(mockUser));
