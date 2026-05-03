@@ -26,9 +26,12 @@ export default function Login() {
     setLoading(true);
     try {
       await login(form);
-      navigate('/dashboard');
+      // ✅ Smart redirect based on role
+      const userStr = localStorage.getItem('joblify_user');
+      const role = userStr ? JSON.parse(userStr).role : 'user';
+      navigate(role === 'admin' ? '/admin' : '/dashboard');
     } catch {
-      setErrors({ submit: 'Invalid credentials' });
+      setErrors({ submit: 'Invalid credentials. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -38,30 +41,46 @@ export default function Login() {
     setLoading(true);
     try {
       await loginWithGoogle();
-      navigate('/dashboard');
+      const userStr = localStorage.getItem('joblify_user');
+      const role = userStr ? JSON.parse(userStr).role : 'user';
+      navigate(role === 'admin' ? '/admin' : '/dashboard');
     } catch {
-      setErrors({ submit: 'Google login failed' });
+      setErrors({ submit: 'Google login failed. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
-      <h2 className="text-2xl font-bold mb-2">Welcome Back</h2>
-      <p className="text-gray-600 mb-6">Sign in to access your dashboard & saved opportunities.</p>
+    <div className="max-w-md mx-auto mt-10 bg-white dark:bg-gray-900 p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Welcome Back</h2>
+      <p className="text-gray-600 dark:text-gray-400 mb-6">Sign in to access your dashboard & saved opportunities.</p>
       
       <SocialAuthButton onClick={handleGoogle} />
       
       <div className="flex items-center gap-4 my-6">
-        <div className="h-px bg-gray-200 flex-1" />
-        <span className="text-sm text-gray-500">or</span>
-        <div className="h-px bg-gray-200 flex-1" />
+        <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1" />
+        <span className="text-sm text-gray-500 dark:text-gray-400">or</span>
+        <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <FormInput label="Email" type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} error={errors.email} placeholder="you@example.com" />
-        <FormInput label="Password" type="password" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} error={errors.password} placeholder="••••••••" />
+        <FormInput 
+          label="Email" 
+          type="email" 
+          value={form.email} 
+          onChange={(e) => setForm({...form, email: e.target.value})} 
+          error={errors.email} 
+          placeholder="you@example.com" 
+        />
+        <FormInput 
+          label="Password" 
+          type="password" 
+          value={form.password} 
+          onChange={(e) => setForm({...form, password: e.target.value})} 
+          error={errors.password} 
+          placeholder="••••••••" 
+        />
         
         {errors.submit && <p className="text-sm text-red-500">{errors.submit}</p>}
         
@@ -70,7 +89,7 @@ export default function Login() {
         </button>
       </form>
 
-      <p className="text-center text-sm text-gray-600 mt-6">
+      <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
         Don't have an account? <Link to="/signup" className="text-primary-600 font-medium hover:underline">Sign up</Link>
       </p>
     </div>
