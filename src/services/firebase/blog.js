@@ -1,7 +1,7 @@
 import { 
   collection, addDoc, getDocs, getDoc, doc, 
   updateDoc, deleteDoc, query, orderBy, 
-  Timestamp 
+  Timestamp, serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 
@@ -17,13 +17,8 @@ export const createBlog = async (postData, userId) => {
   return docRef.id;
 };
 
-export const getBlogs = async (filters = {}) => {
-  let q = query(collection(db, 'blog'), orderBy('createdAt', 'desc'));
-  
-  if (filters.category) {
-    q = query(q, where('category', '==', filters.category));
-  }
-  
+export const getBlogs = async () => {
+  const q = query(collection(db, 'blog'), orderBy('createdAt', 'desc'));
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
@@ -33,9 +28,9 @@ export const getBlogById = async (id) => {
   const docSnap = await getDoc(docRef);
   
   if (docSnap.exists()) {
+    // Increment view count
     await updateDoc(docRef, {
-      views: (docSnap.data().views || 0) + 1,
-      updatedAt: Timestamp.now()
+      views: (docSnap.data().views || 0) + 1
     });
     return { id: docSnap.id, ...docSnap.data() };
   }
@@ -44,19 +39,12 @@ export const getBlogById = async (id) => {
 
 export const updateBlog = async (id, updates, userId) => {
   const blogRef = doc(db, 'blog', id);
-  const blogSnap = await getDoc(blogRef);
-  // Only admin or author can edit
-  if (blogSnap.data().authorId !== userId) {
-    throw new Error('Unauthorized');
-  }
-  await updateDoc(blogRef, { ...updates, updatedAt: Timestamp.now() });
+  await updateDoc(blogRef, {
+    ...updates,
+    updatedAt: Timestamp.now()
+  });
 };
 
-export const deleteBlog = async (id, userId) => {
-  const blogRef = doc(db, 'blog', id);
-  const blogSnap = await getDoc(blogRef);
-  if (blogSnap.data().authorId !== userId) {
-    throw new Error('Unauthorized');
-  }
-  await deleteDoc(blogRef);
+export const deleteBlog = async (id) => {
+  await deleteDoc(doc(db, 'blog', id));
 };
