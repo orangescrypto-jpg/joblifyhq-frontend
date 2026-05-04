@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react';
 import { FiX } from 'react-icons/fi';
+import dynamic from 'dynamic';
+
+// Dynamically import Quill (rich text editor) - only loads when needed
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
 
 export default function AdminFormModal({ isOpen, onClose, type, initialData, onSubmit }) {
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
+  const [editorMode, setEditorMode] = useState('rich'); // 'rich' or 'html'
 
   useEffect(() => {
     if (initialData) setForm(initialData);
@@ -47,37 +53,88 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
       { key: 'category', label: 'Category', type: 'text' },
       { key: 'image', label: 'Featured Image URL', type: 'url' },
       { key: 'excerpt', label: 'Short Excerpt', type: 'textarea' },
-      { key: 'content', label: 'Content', type: 'textarea', rows: 6 },
     ]
   };
 
   const currentFields = fields[type] || [];
 
+  // Rich text editor toolbar configuration
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      ['link', 'image'],
+      ['clean']
+    ],
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-5 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <h3 className="text-lg font-semibold capitalize">{initialData ? 'Edit' : 'Create'} {type}</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><FiX size={20} /></button>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center p-5 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
+          <h3 className="text-lg font-semibold capitalize dark:text-white">{initialData ? 'Edit' : 'Create'} {type}</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"><FiX size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {currentFields.map(f => (
             <div key={f.key} className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">{f.label}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{f.label}</label>
               {f.type === 'select' ? (
-                <select value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)} className="input-field" required>
+                <select value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)} className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white" required>
                   <option value="">Select...</option>
                   {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
+              ) : type === 'blog' && f.key === 'content' ? (
+                // Rich Text Editor for Blog Content
+                <div className="border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode('rich')}
+                      className={`px-4 py-2 text-sm font-medium ${editorMode === 'rich' ? 'bg-white dark:bg-gray-700 text-primary-600 border-b-2 border-primary-600' : 'text-gray-600 dark:text-gray-400'}`}
+                    >
+                      Rich Text
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode('html')}
+                      className={`px-4 py-2 text-sm font-medium ${editorMode === 'html' ? 'bg-white dark:bg-gray-700 text-primary-600 border-b-2 border-primary-600' : 'text-gray-600 dark:text-gray-400'}`}
+                    >
+                      HTML
+                    </button>
+                  </div>
+                  {editorMode === 'rich' ? (
+                    <ReactQuill 
+                      theme="snow"
+                      value={form[f.key] || ''}
+                      onChange={(content) => handleChange(f.key, content)}
+                      modules={quillModules}
+                      className="bg-white dark:bg-gray-800"
+                      style={{ height: '300px' }}
+                    />
+                  ) : (
+                    <textarea
+                      value={form[f.key] || ''}
+                      onChange={(e) => handleChange(f.key, e.target.value)}
+                      rows={12}
+                      className="input-field font-mono text-sm resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                      placeholder="<p>Write your HTML content here...</p>"
+                      required
+                    />
+                  )}
+                </div>
               ) : f.type === 'textarea' ? (
-                <textarea value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)} rows={f.rows || 4} className="input-field resize-none" required />
+                <textarea value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)} rows={f.rows || 4} className="input-field resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-white" required />
               ) : (
-                <input type={f.type} value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)} className="input-field" required />
+                <input type={f.type} value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)} className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white" required />
               )}
             </div>
           ))}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <button type="button" onClick={onClose} className="btn-secondary dark:bg-gray-800 dark:text-white dark:border-gray-700">Cancel</button>
             <button type="submit" disabled={loading} className="btn-primary">{loading ? 'Saving...' : (initialData ? 'Update' : 'Create')}</button>
           </div>
         </form>
