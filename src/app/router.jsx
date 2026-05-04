@@ -18,11 +18,19 @@ import PrivacyPolicy from '../pages/PrivacyPolicy';
 import TermsConditions from '../pages/TermsConditions';
 import Contact from '../pages/Contact';
 
-const ProtectedRoute = ({ children, adminOnly = false }) => {
+// Employer Pages
+import EmployerDashboard from '../pages/employer/EmployerDashboard';
+import EmployerPostJob from '../pages/employer/EmployerPostJob';
+import EmployerListings from '../pages/employer/EmployerListings';
+import EmployerApplications from '../pages/employer/EmployerApplications';
+
+// Protected Route Component
+const ProtectedRoute = ({ children, adminOnly = false, employerOnly = false }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="flex items-center justify-center h-screen text-gray-500">Loading auth...</div>;
+  if (loading) return <div className="flex items-center justify-center h-screen text-gray-500">Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && user.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  if (employerOnly && user.role !== 'employer') return <Navigate to="/dashboard" replace />;
   return children;
 };
 
@@ -43,12 +51,28 @@ export default function AppRoutes() {
         <Route path="terms" element={<TermsConditions />} />
         <Route path="contact" element={<Contact />} />
         
+        {/* User Dashboard */}
         <Route path="dashboard" element={
           <ProtectedRoute><Dashboard /></ProtectedRoute>
         } />
         
+        {/* Admin Dashboard */}
         <Route path="admin" element={
           <ProtectedRoute adminOnly><Admin /></ProtectedRoute>
+        } />
+        
+        {/* Employer Portal */}
+        <Route path="employer" element={
+          <ProtectedRoute employerOnly><EmployerDashboard /></ProtectedRoute>
+        } />
+        <Route path="employer/post-job" element={
+          <ProtectedRoute employerOnly><EmployerPostJob /></ProtectedRoute>
+        } />
+        <Route path="employer/listings" element={
+          <ProtectedRoute employerOnly><EmployerListings /></ProtectedRoute>
+        } />
+        <Route path="employer/applications" element={
+          <ProtectedRoute employerOnly><EmployerApplications /></ProtectedRoute>
         } />
         
         <Route path="*" element={<Navigate to="/" replace />} />
