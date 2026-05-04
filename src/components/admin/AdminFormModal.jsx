@@ -4,7 +4,7 @@ import { FiX } from 'react-icons/fi';
 export default function AdminFormModal({ isOpen, onClose, type, initialData, onSubmit }) {
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
-  const [editorMode, setEditorMode] = useState('rich');
+  const [previewMode, setPreviewMode] = useState(false);
 
   useEffect(() => {
     if (initialData) setForm(initialData);
@@ -74,21 +74,25 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
                 <div>
                   {type === 'blog' && f.key === 'content' && (
                     <div className="flex gap-2 mb-2">
-                      <button type="button" onClick={() => setEditorMode('rich')} className={`px-3 py-1 text-xs rounded ${editorMode === 'rich' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'}`}>Preview</button>
-                      <button type="button" onClick={() => setEditorMode('html')} className={`px-3 py-1 text-xs rounded ${editorMode === 'html' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'}`}>Edit HTML</button>
+                      <button type="button" onClick={() => setPreviewMode(!previewMode)} className="px-3 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition">
+                        {previewMode ? 'Edit HTML' : 'Preview'}
+                      </button>
                     </div>
                   )}
-                  {editorMode === 'html' || type !== 'blog' || f.key !== 'content' ? (
+                  {previewMode && type === 'blog' && f.key === 'content' ? (
+                    <div 
+                      className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 min-h-[200px] prose dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: form[f.key] || '<p class="text-gray-400 italic">Write content in HTML mode to see preview...</p>' }} 
+                    />
+                  ) : (
                     <textarea 
                       value={form[f.key] || ''} 
                       onChange={(e) => handleChange(f.key, e.target.value)} 
                       rows={f.rows || 4} 
                       className="input-field font-mono text-sm resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-white" 
-                      placeholder={type === 'blog' && f.key === 'content' ? '<p>Write your content here. HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;ul&gt; are supported.</p>' : ''}
+                      placeholder={type === 'blog' && f.key === 'content' ? '<p>Write HTML content here. Example: &lt;h2&gt;Title&lt;/h2&gt;&lt;p&gt;Text&lt;/p&gt;' : ''}
                       required 
                     />
-                  ) : (
-                    <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 min-h-[200px] prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: form[f.key] || '<p class="text-gray-400">Content preview will appear here...</p>' }} />
                   )}
                 </div>
               ) : (
