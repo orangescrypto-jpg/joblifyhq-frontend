@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiCalendar, FiUser, FiArrowLeft } from 'react-icons/fi';
-import { fetchBlogs } from '../services/mockData';
+import { getBlogById, getBlogs } from '../services/firebase/blog';
 import BlogCard from '../components/blog/BlogCard';
 import BlogComments from '../components/blog/BlogComments';
 import ShareButtons from '../components/blog/ShareButtons';
+import { FiCalendar, FiUser, FiArrowLeft } from 'react-icons/fi';
 
 export default function BlogDetails() {
   const { id } = useParams();
@@ -13,14 +13,20 @@ export default function BlogDetails() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchBlogs().then(data => {
-      setPost(data.find(p => p.id === id) || null);
-      setRelated(data.filter(p => p.id !== id).slice(0, 2));
+    const fetchPost = async () => {
+      const blogPost = await getBlogById(id);
+      setPost(blogPost);
+      
+      // Fetch related posts
+      const allBlogs = await getBlogs();
+      setRelated(allBlogs.filter(p => p.id !== id).slice(0, 2));
       setLoading(false);
-    });
+    };
+    
+    fetchPost();
   }, [id]);
 
-  if (loading) return <div className="animate-pulse space-y-6 p-10"><div className="h-64 bg-gray-200 rounded-xl"></div><div className="h-8 w-2/3 bg-gray-200 rounded"></div><div className="h-4 w-1/3 bg-gray-200 rounded"></div></div>;
+  if (loading) return <div className="animate-pulse space-y-6 p-10"><div className="h-64 bg-gray-200 rounded-xl"></div><div className="h-8 w-2/3 bg-gray-200 rounded"></div></div>;
   if (!post) return <div className="text-center py-20"><h2 className="text-2xl font-bold mb-2">Article Not Found</h2><Link to="/blog" className="btn-primary">Back to Blog</Link></div>;
 
   const currentUrl = window.location.href;
@@ -39,27 +45,19 @@ export default function BlogDetails() {
           
           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-8 pb-6 border-b border-gray-200 dark:border-gray-800">
             <span className="flex items-center gap-2"><FiUser /> {post.author}</span>
-            <span className="flex items-center gap-2"><FiCalendar /> {post.date}</span>
+            <span className="flex items-center gap-2"><FiCalendar /> {post.createdAt?.toDate().toLocaleDateString() || post.date}</span>
             <div className="ml-auto">
               <ShareButtons title={post.title} url={currentUrl} />
             </div>
           </div>
 
-          <div className="prose prose-lg dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
-            <p className="mb-4">{post.excerpt}</p>
-            <p className="mb-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 mt-8">Key Takeaways</h3>
-            <ul className="list-disc pl-5 space-y-2 mb-6">
-              <li>Focus on consistent skill development</li>
-              <li>Build a strong professional network</li>
-              <li>Track your applications systematically</li>
-            </ul>
-            <p>Start applying today and take the next step in your career journey.</p>
-          </div>
+          <div 
+            className="prose prose-lg dark:prose-invert max-w-none text-gray-700 dark:text-gray-300"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
         </div>
       </article>
 
-      {/* Comments Section */}
       <BlogComments postId={post.id} />
 
       {related.length > 0 && (
