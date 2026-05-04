@@ -7,6 +7,8 @@ import ErrorBoundary from './components/common/ErrorBoundary'
 import AppRoutes from './app/router'
 import './styles/index.css'
 
+// Firebase is initialized in config.js, no provider needed at root
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
