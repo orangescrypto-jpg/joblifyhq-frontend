@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchScholarships } from '../services/mockData';
+import { getScholarships } from '../services/firebase/scholarships';
 import ScholarshipCard from '../components/scholarship/ScholarshipCard';
 import SearchBar from '../components/common/SearchBar';
 import FilterPanel from '../components/common/FilterPanel';
@@ -10,17 +10,22 @@ export default function Scholarships() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ category: '', type: '' });
+  const [filters, setFilters] = useState({ category: '', funding: '' });
 
   useEffect(() => {
-    fetchScholarships().then(setData).finally(() => setLoading(false));
-  }, []);
-
-  const filtered = data.filter(s => {
-    const matchSearch = s.title.toLowerCase().includes(search.toLowerCase()) || 
-                        s.org.toLowerCase().includes(search.toLowerCase());
-    return matchSearch;
-  });
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const results = await getScholarships({ ...filters, search });
+        setData(results);
+      } catch (error) {
+        console.error('Error fetching scholarships:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [filters, search]);
 
   return (
     <div>
@@ -29,9 +34,9 @@ export default function Scholarships() {
       <FilterPanel filters={filters} onChange={setFilters} />
       
       {loading ? <LoadingSkeleton /> : 
-       filtered.length === 0 ? <EmptyState title="No scholarships found" message="Check back later for new opportunities." /> : (
+       data.length === 0 ? <EmptyState title="No scholarships found" message="Check back later for new opportunities." /> : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map(s => <ScholarshipCard key={s.id} scholarship={s} />)}
+          {data.map(s => <ScholarshipCard key={s.id} scholarship={s} />)}
         </div>
       )}
     </div>
