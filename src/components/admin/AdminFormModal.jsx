@@ -1,20 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { FiX } from 'react-icons/fi';
-import dynamic from 'dynamic';
-
-// Dynamically import Quill (rich text editor) - only loads when needed
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 import 'react-quill/dist/quill.snow.css';
+
+// Lazy load ReactQuill for better bundle splitting (Vite-compatible)
+const ReactQuill = lazy(() => import('react-quill'));
 
 export default function AdminFormModal({ isOpen, onClose, type, initialData, onSubmit }) {
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
   const [editorMode, setEditorMode] = useState('rich'); // 'rich' or 'html'
+  const [quillLoaded, setQuillLoaded] = useState(false);
 
   useEffect(() => {
     if (initialData) setForm(initialData);
     else setForm({});
   }, [initialData, isOpen]);
+
+  // Load Quill only when modal opens and editor is needed
+  useEffect(() => {
+    if (isOpen && type === 'blog' && !quillLoaded) {
+      import('react-quill').then(() => setQuillLoaded(true));
+    }
+  }, [isOpen, type, quillLoaded]);
 
   if (!isOpen) return null;
 
@@ -107,14 +114,20 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
                     </button>
                   </div>
                   {editorMode === 'rich' ? (
-                    <ReactQuill 
-                      theme="snow"
-                      value={form[f.key] || ''}
-                      onChange={(content) => handleChange(f.key, content)}
-                      modules={quillModules}
-                      className="bg-white dark:bg-gray-800"
-                      style={{ height: '300px' }}
-                    />
+                    <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading editor...</div>}>
+                      {quillLoaded ? (
+                        <ReactQuill 
+                          theme="snow"
+                          value={form[f.key] || ''}
+                          onChange={(content) => handleChange(f.key, content)}
+                          modules={quillModules}
+                          className="bg-white dark:bg-gray-800"
+                          style={{ height: '300px' }}
+                        />
+                      ) : (
+                        <div className="p-8 text-center text-gray-500">Loading editor...</div>
+                      )}
+                    </Suspense>
                   ) : (
                     <textarea
                       value={form[f.key] || ''}
