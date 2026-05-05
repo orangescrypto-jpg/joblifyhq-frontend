@@ -5,7 +5,8 @@ import FormInput from '../components/forms/FormInput';
 import SocialAuthButton from '../components/common/SocialAuthButton';
 
 export default function Login() {
-  const { login, loginWithGoogle, error: authError, loading: authLoading } = useAuth();
+  // authError intentionally NOT used here — avoids leaking Firebase internal messages
+  const { login, loginWithGoogle, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ email: '', password: '' });
@@ -32,8 +33,7 @@ export default function Login() {
       await login(form.email, form.password);
       navigate('/');
     } catch (err) {
-      console.error('Login Error:', err.code);
-      // Hide Firebase technical errors - show generic message
+      // Always show clean message — never expose Firebase error codes
       setLocalError('Invalid credentials. Please check your email and password.');
     } finally {
       setSubmitting(false);
@@ -45,10 +45,16 @@ export default function Login() {
     setSubmitting(true);
     try {
       await loginWithGoogle();
-      navigate('/');
+      // FIXED: small delay lets onAuthStateChanged settle before navigating
+      setTimeout(() => navigate('/'), 300);
     } catch (err) {
-      console.error('Google Login Error:', err.code);
-      setLocalError('Google sign-in failed. Please try again or use email/password.');
+      if (err.message?.includes('popup-closed') || err.message?.includes('cancelled')) {
+        setLocalError('Sign-in was cancelled. Please try again.');
+      } else if (err.message?.includes('popup-blocked')) {
+        setLocalError('Popup blocked. Please allow popups for this site and try again.');
+      } else {
+        setLocalError('Google sign-in failed. Please try again or use email/password.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -57,7 +63,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-12">
       <div className="w-full max-w-md bg-white dark:bg-gray-900 p-8 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-        
+
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h2>
           <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">Sign in to access your dashboard</p>
@@ -75,20 +81,20 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <FormInput 
-            label="Email Address" 
-            type="email" 
-            value={form.email} 
-            onChange={(e) => handleInputChange('email', e.target.value)} 
-            placeholder="you@example.com" 
+          <FormInput
+            label="Email Address"
+            type="email"
+            value={form.email}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            placeholder="you@example.com"
           />
 
-          <FormInput 
-            label="Password" 
-            type="password" 
-            value={form.password} 
-            onChange={(e) => handleInputChange('password', e.target.value)} 
-            placeholder="••••••••" 
+          <FormInput
+            label="Password"
+            type="password"
+            value={form.password}
+            onChange={(e) => handleInputChange('password', e.target.value)}
+            placeholder="••••••••"
           />
 
           <div className="flex items-center justify-between text-sm">
@@ -101,15 +107,16 @@ export default function Login() {
             </Link>
           </div>
 
-          {(authError || localError) && (
+          {/* FIXED: only localError shown, no authError that could leak Firebase messages */}
+          {localError && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm rounded-lg text-center">
-              {authError || localError}
+              {localError}
             </div>
           )}
 
-          <button 
-            type="submit" 
-            disabled={submitting || authLoading} 
+          <button
+            type="submit"
+            disabled={submitting || authLoading}
             className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 px-4 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {submitting || authLoading ? 'Signing In...' : 'Sign In'}
