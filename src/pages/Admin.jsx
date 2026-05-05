@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiPlus, FiBriefcase, FiAward, FiFileText, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiBriefcase, FiAward, FiFileText, FiEdit2, FiTrash2, FiStar } from 'react-icons/fi';
 import AdminFormModal from '../components/admin/AdminFormModal';
 import { getJobs, createJob, updateJob, deleteJob } from '../services/firebase/jobs';
 import { getScholarships, createScholarship, updateScholarship, deleteScholarship } from '../services/firebase/scholarships';
@@ -56,6 +56,22 @@ export default function Admin() {
   const handleCreate = () => { setEditItem(null); setModalOpen(true); };
   const handleEdit = (item) => { setEditItem(item); setModalOpen(true); };
   const handleDeleteClick = (item) => { setDeleteTarget(item); setConfirmDelete(true); };
+
+  const handleBoost = async (item) => {
+    try {
+      const colName = activeTab === 'job' ? 'jobs' : 'scholarships';
+      const ref = doc(db, colName, item.id);
+      await updateDoc(ref, {
+        isFeatured: !item.isFeatured,
+        updatedAt: Timestamp.now()
+      });
+      showToast(item.isFeatured ? 'Removed from featured' : '⚡ Marked as Featured!');
+      fetchItems();
+    } catch (err) {
+      console.error('Boost error:', err);
+      showToast('Failed to update featured status', 'error');
+    }
+  };
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -167,17 +183,35 @@ export default function Admin() {
                 {columns[activeTab].map(col => (
                   <th key={col} className="px-4 py-3 capitalize">{col}</th>
                 ))}
+                {activeTab !== 'blog' && (
+                  <th className="px-4 py-3 text-center">Featured</th>
+                )}
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {items.map(item => (
-                <tr key={item.id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                <tr key={item.id} className={`bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition ${item.isFeatured ? 'border-l-4 border-yellow-400' : ''}`}>
                   {columns[activeTab].map(col => (
                     <td key={col} className="px-4 py-3 text-gray-800 dark:text-gray-200 max-w-[200px] truncate">
                       {item[col] || '—'}
                     </td>
                   ))}
+                  {activeTab !== 'blog' && (
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => handleBoost(item)}
+                        title={item.isFeatured ? 'Remove Featured' : 'Mark as Featured'}
+                        className={`p-2 rounded-lg transition text-lg ${
+                          item.isFeatured
+                            ? 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
+                            : 'text-gray-300 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+                        }`}
+                      >
+                        ⚡
+                      </button>
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
                       <button
