@@ -1,5 +1,80 @@
-import { useState, useEffect } from 'react';
-import { FiX } from 'react-icons/fi';
+import { useState, useEffect, useRef } from 'react';
+import { FiX, FiBold, FiItalic, FiList, FiAlignLeft } from 'react-icons/fi';
+
+// Simple rich text toolbar that inserts HTML tags into a textarea
+function SimpleEditor({ value, onChange, rows = 6, placeholder = '' }) {
+  const ref = useRef(null);
+
+  const insert = (before, after = '') => {
+    const el = ref.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const selected = value.slice(start, end);
+    const newValue = value.slice(0, start) + before + selected + after + value.slice(end);
+    onChange(newValue);
+    setTimeout(() => {
+      el.selectionStart = start + before.length;
+      el.selectionEnd = start + before.length + selected.length;
+      el.focus();
+    }, 0);
+  };
+
+  const insertParagraph = () => {
+    const el = ref.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const newValue = value.slice(0, start) + '\n\n' + value.slice(start);
+    onChange(newValue);
+    setTimeout(() => { el.selectionStart = el.selectionEnd = start + 2; el.focus(); }, 0);
+  };
+
+  const insertBullet = () => {
+    const el = ref.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    const newValue = value.slice(0, lineStart) + '• ' + value.slice(lineStart);
+    onChange(newValue);
+    setTimeout(() => { el.selectionStart = el.selectionEnd = start + 2; el.focus(); }, 0);
+  };
+
+  return (
+    <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex items-center gap-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-wrap">
+        <button type="button" onClick={() => insert('<b>', '</b>')} title="Bold"
+          className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold text-sm">
+          B
+        </button>
+        <button type="button" onClick={() => insert('<i>', '</i>')} title="Italic"
+          className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 italic text-sm">
+          I
+        </button>
+        <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1" />
+        <button type="button" onClick={insertParagraph} title="New Paragraph"
+          className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1">
+          <FiAlignLeft size={13} /> Para
+        </button>
+        <button type="button" onClick={insertBullet} title="Bullet Point"
+          className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs flex items-center gap-1">
+          <FiList size={13} /> Bullet
+        </button>
+        <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1" />
+        <span className="text-xs text-gray-400 ml-1">Select text then click Bold/Italic</span>
+      </div>
+      {/* Textarea */}
+      <textarea
+        ref={ref}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        rows={rows}
+        placeholder={placeholder}
+        className="w-full px-3 py-3 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-900 resize-y focus:outline-none focus:ring-0"
+      />
+    </div>
+  );
+}
 
 export default function AdminFormModal({ isOpen, onClose, type, initialData, onSubmit }) {
   const [form, setForm] = useState({});
@@ -9,6 +84,7 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
   useEffect(() => {
     if (initialData) setForm(initialData);
     else setForm({});
+    setPreviewMode(false);
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -25,6 +101,23 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
     }
   };
 
+  // Convert plain text with • bullets and \n\n paragraphs to HTML for saving
+  const formatDescriptionToHtml = (text) => {
+    if (!text) return '';
+    return text
+      .split('\n\n')
+      .map(para => {
+        const lines = para.split('\n');
+        const hasBullets = lines.some(l => l.startsWith('• '));
+        if (hasBullets) {
+          const items = lines.filter(l => l.startsWith('• ')).map(l => `<li>${l.slice(2)}</li>`).join('');
+          return `<ul>${items}</ul>`;
+        }
+        return `<p>${para.replace(/\n/g, '<br/>')}</p>`;
+      })
+      .join('');
+  };
+
   const fields = {
     job: [
       { key: 'title', label: 'Job Title', type: 'text', required: true },
@@ -34,7 +127,7 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
       { key: 'salary', label: 'Salary', type: 'text', required: false },
       { key: 'deadline', label: 'Deadline', type: 'date', required: true },
       { key: 'applyLink', label: 'Apply Link (URL)', type: 'url', required: false },
-      { key: 'description', label: 'Description', type: 'textarea', required: true },
+      { key: 'description', label: 'Description', type: 'richtext', required: true },
     ],
     scholarship: [
       { key: 'title', label: 'Title', type: 'text', required: true },
@@ -44,7 +137,7 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
       { key: 'deadline', label: 'Deadline', type: 'date', required: true },
       { key: 'benefits', label: 'Benefits (e.g. Tuition + Stipend)', type: 'text', required: false },
       { key: 'applyLink', label: 'Apply Link (URL)', type: 'url', required: false },
-      { key: 'description', label: 'Description', type: 'textarea', required: true },
+      { key: 'description', label: 'Description', type: 'richtext', required: true },
     ],
     blog: [
       { key: 'title', label: 'Title', type: 'text', required: true },
@@ -72,54 +165,49 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
                 {f.label}
                 {!f.required && <span className="text-gray-400 text-xs ml-1">(optional)</span>}
               </label>
+
               {f.type === 'select' ? (
-                <select
-                  value={form[f.key] || ''}
-                  onChange={(e) => handleChange(f.key, e.target.value)}
-                  className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                  required={f.required}
-                >
+                <select value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)}
+                  className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white" required={f.required}>
                   <option value="">Select...</option>
                   {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
+
+              ) : f.type === 'richtext' ? (
+                <SimpleEditor
+                  value={form[f.key] || ''}
+                  onChange={val => handleChange(f.key, val)}
+                  rows={7}
+                  placeholder="Write your description here. Use the toolbar above to format text. Press Para button or double Enter to start a new paragraph."
+                />
+
               ) : f.type === 'textarea' ? (
                 <div>
                   {type === 'blog' && f.key === 'content' && (
                     <div className="flex gap-2 mb-2">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewMode(!previewMode)}
-                        className="px-3 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition"
-                      >
+                      <button type="button" onClick={() => setPreviewMode(!previewMode)}
+                        className="px-3 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition">
                         {previewMode ? 'Edit HTML' : 'Preview'}
                       </button>
                     </div>
                   )}
                   {previewMode && type === 'blog' && f.key === 'content' ? (
-                    <div
-                      className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 min-h-[200px] prose dark:prose-invert max-w-none"
-                      dangerouslySetInnerHTML={{ __html: form[f.key] || '<p class="text-gray-400 italic">Preview will appear here...</p>' }}
-                    />
+                    <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 min-h-[200px] prose dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: form[f.key] || '<p class="text-gray-400 italic">Preview will appear here...</p>' }} />
                   ) : (
-                    <textarea
-                      value={form[f.key] || ''}
-                      onChange={(e) => handleChange(f.key, e.target.value)}
+                    <textarea value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)}
                       rows={f.rows || 4}
                       className="input-field font-mono text-sm resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                       placeholder={type === 'blog' && f.key === 'content' ? '<p>Write HTML content here...</p>' : ''}
-                      required={f.required}
-                    />
+                      required={f.required} />
                   )}
                 </div>
+
               ) : (
-                <input
-                  type={f.type}
-                  value={form[f.key] || ''}
-                  onChange={(e) => handleChange(f.key, e.target.value)}
+                <input type={f.type} value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)}
                   className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   placeholder={f.key === 'applyLink' ? 'https://example.com/apply' : ''}
-                  required={f.required}
-                />
+                  required={f.required} />
               )}
             </div>
           ))}
