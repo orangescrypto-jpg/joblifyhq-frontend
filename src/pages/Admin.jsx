@@ -6,18 +6,19 @@ import { getBlogs, createBlog, updateBlog, deleteBlog } from '../services/fireba
 import AdminTable from '../components/admin/AdminTable';
 import AdminFormModal from '../components/admin/AdminFormModal';
 import DeleteModal from '../components/common/DeleteModal';
-import { FiBriefcase, FiAward, FiBookOpen, FiUsers, FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiBriefcase, FiAward, FiBookOpen, FiUsers, FiPlus } from 'react-icons/fi';
 
 export default function Admin() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('job'); // 'job', 'scholarship', 'blog'
+  const [activeTab, setActiveTab] = useState('job');
   const [data, setData] = useState({ job: [], scholarship: [], blog: [] });
   const [loading, setLoading] = useState(true);
-  
+
   const [formModal, setFormModal] = useState({ open: false, type: '', item: null });
   const [deleteModal, setDeleteModal] = useState({ open: false, id: '', type: '' });
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState('');
 
-  // Fetch all data on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -28,7 +29,7 @@ export default function Admin() {
         ]);
         setData({ job: jobsData, scholarship: scholarshipsData, blog: blogsData });
       } catch (error) {
-        console.error('Error fetching admin ', error);
+        console.error('Error fetching admin data:', error);
       } finally {
         setLoading(false);
       }
@@ -36,109 +37,103 @@ export default function Admin() {
     fetchData();
   }, []);
 
-  // Handle Create/Update
+  // FIXED: closes modal on success, shows feedback banners instead of alert()
   const handleSave = async (item) => {
+    setSaveError('');
+    setSaveSuccess('');
     try {
       const { type, id, ...rest } = item;
-      
+      let savedId = id;
+
       if (type === 'job') {
         if (id && !id.startsWith('new_')) {
           await updateJob(id, rest, user.uid);
         } else {
-          const newId = await createJob(rest, user.uid);
-          item.id = newId;
+          savedId = await createJob(rest, user.uid);
         }
       } else if (type === 'scholarship') {
         if (id && !id.startsWith('new_')) {
           await updateScholarship(id, rest, user.uid);
         } else {
-          const newId = await createScholarship(rest, user.uid);
-          item.id = newId;
+          savedId = await createScholarship(rest, user.uid);
         }
       } else if (type === 'blog') {
         if (id && !id.startsWith('new_')) {
           await updateBlog(id, rest, user.uid);
         } else {
-          const newId = await createBlog(rest, user.uid);
-          item.id = newId;
+          savedId = await createBlog(rest, user.uid);
         }
       }
-      
-      // Update local state
+
+      const finalItem = { ...item, id: savedId };
+
       setData(prev => {
         const arr = prev[type] || [];
-        const exists = arr.find(i => i.id === item.id);
+        const exists = arr.find(i => i.id === savedId);
         return {
           ...prev,
-          [type]: exists ? arr.map(i => i.id === item.id ? { ...i, ...rest } : i) : [...arr, item]
+          [type]: exists
+            ? arr.map(i => i.id === savedId ? { ...i, ...rest } : i)
+            : [...arr, finalItem]
         };
       });
+
+      // Close modal and show success
+      setFormModal({ open: false, type: '', item: null });
+      setSaveSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} saved successfully!`);
+      setTimeout(() => setSaveSuccess(''), 3000);
     } catch (error) {
       console.error('Error saving:', error);
-      alert('Failed to save. Please try again.');
+      setSaveError('Failed to save. Please check your permissions and try again.');
+      setTimeout(() => setSaveError(''), 5000);
     }
   };
 
-  // Handle Delete
   const handleDeleteConfirm = async () => {
     try {
       const { type, id } = deleteModal;
-      
-      if (type === 'job') {
-        await deleteJob(id, user.uid);
-      } else if (type === 'scholarship') {
-        await deleteScholarship(id, user.uid);
-      } else if (type === 'blog') {
-        await deleteBlog(id);
-      }
-      
-      // Update local state
+      if (type === 'job') await deleteJob(id, user.uid);
+      else if (type === 'scholarship') await deleteScholarship(id, user.uid);
+      else if (type === 'blog') await deleteBlog(id);
+
       setData(prev => ({
         ...prev,
         [type]: prev[type].filter(i => i.id !== id)
       }));
-      
       setDeleteModal({ open: false, id: '', type: '' });
     } catch (error) {
       console.error('Error deleting:', error);
-      alert('Failed to delete. Please try again.');
+      setSaveError('Failed to delete. Please try again.');
+      setTimeout(() => setSaveError(''), 5000);
     }
   };
 
-  // Tab configuration
   const tabs = [
     { id: 'job', label: 'Jobs', icon: <FiBriefcase /> },
     { id: 'scholarship', label: 'Scholarships', icon: <FiAward /> },
     { id: 'blog', label: 'Blog', icon: <FiBookOpen /> },
   ];
 
-  // Render table based on type
   const renderTable = (type) => {
     const items = data[type] || [];
     let headers = [], rows = [];
-    
+
     if (type === 'job') {
       headers = ['Title', 'Company', 'Location', 'Deadline', 'Type'];
-      rows = items.map(j => ({ 
-        id: j.id, 
-        cells: [j.title, j.company, j.location, j.deadline, j.type] 
-      }));
+      rows = items.map(j => ({ id: j.id, cells: [j.title, j.company, j.location, j.deadline, j.type] }));
     } else if (type === 'scholarship') {
       headers = ['Title', 'Organization', 'Country', 'Deadline', 'Funding'];
-      rows = items.map(s => ({ 
-        id: s.id, 
-        cells: [s.title, s.org, s.country, s.deadline, s.funding || s.type] 
-      }));
+      rows = items.map(s => ({ id: s.id, cells: [s.title, s.org, s.country, s.deadline, s.funding || s.type] }));
     } else if (type === 'blog') {
       headers = ['Title', 'Author', 'Category', 'Date'];
-      rows = items.map(b => ({ 
-        id: b.id, 
+      rows = items.map(b => ({
+        id: b.id,
         cells: [
-          b.title, 
-          b.author, 
-          b.category, 
+          b.title,
+          b.author,
+          b.category,
           b.createdAt?.toDate ? b.createdAt.toDate().toLocaleDateString() : b.date || 'Recently'
-        ] 
+        ]
       }));
     }
 
@@ -148,25 +143,21 @@ export default function Admin() {
           <h2 className="text-xl font-bold capitalize text-gray-900 dark:text-white">
             {type === 'blog' ? 'Blog Posts' : type + 's'} Management
           </h2>
-          <button 
-            onClick={() => setFormModal({ open: true, type, item: null })} 
+          <button
+            onClick={() => setFormModal({ open: true, type, item: null })}
             className="btn-primary flex items-center gap-2"
           >
             <FiPlus /> Add New
           </button>
         </div>
-        
+
         {loading ? (
           <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
         ) : (
-          <AdminTable 
-            headers={headers} 
-            rows={rows} 
-            onEdit={(id) => setFormModal({ 
-              open: true, 
-              type, 
-              item: items.find(i => i.id === id) 
-            })}
+          <AdminTable
+            headers={headers}
+            rows={rows}
+            onEdit={(id) => setFormModal({ open: true, type, item: items.find(i => i.id === id) })}
             onDelete={(id) => setDeleteModal({ open: true, id, type })}
           />
         )}
@@ -174,7 +165,6 @@ export default function Admin() {
     );
   };
 
-  // Stats cards
   const stats = [
     { label: 'Total Jobs', value: data.job.length, icon: <FiBriefcase />, color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
     { label: 'Scholarships', value: data.scholarship.length, icon: <FiAward />, color: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' },
@@ -185,7 +175,19 @@ export default function Admin() {
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Admin Dashboard</h1>
-      
+
+      {/* Success/Error Notifications */}
+      {saveSuccess && (
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm rounded-lg">
+          ✓ {saveSuccess}
+        </div>
+      )}
+      {saveError && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm rounded-lg">
+          ✗ {saveError}
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map(s => (
@@ -202,12 +204,12 @@ export default function Admin() {
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 pb-2 overflow-x-auto">
         {tabs.map(t => (
-          <button 
-            key={t.id} 
-            onClick={() => setActiveTab(t.id)} 
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
-              activeTab === t.id 
-                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' 
+              activeTab === t.id
+                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
@@ -216,20 +218,17 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* Table Content */}
       {renderTable(activeTab)}
 
-      {/* Create/Edit Modal */}
-      <AdminFormModal 
-        isOpen={formModal.open} 
+      <AdminFormModal
+        isOpen={formModal.open}
         onClose={() => setFormModal({ open: false, type: '', item: null })}
         type={formModal.type}
         initialData={formModal.item}
         onSubmit={handleSave}
       />
 
-      {/* Delete Confirmation Modal */}
-      <DeleteModal 
+      <DeleteModal
         isOpen={deleteModal.open}
         onClose={() => setDeleteModal({ open: false, id: '', type: '' })}
         onConfirm={handleDeleteConfirm}
