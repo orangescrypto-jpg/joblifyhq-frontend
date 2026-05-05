@@ -50,6 +50,9 @@ const ProtectedRoute = ({ children, roleRequired }) => {
   return children;
 };
 
+// Wraps a page with MainLayout directly — avoids nested route Outlet issues
+const MainPage = ({ children }) => <MainLayout>{children}</MainLayout>;
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -84,7 +87,7 @@ export default function AppRoutes() {
         <Route index element={<Dashboard />} />
       </Route>
 
-      {/* 🔒 Admin - FIXED: single ProtectedRoute, no double-wrap */}
+      {/* 🔒 Admin - FIXED: Admin rendered directly inside MainLayout, no double-wrap */}
       <Route
         path="admin"
         element={
