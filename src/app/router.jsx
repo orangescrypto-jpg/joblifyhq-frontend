@@ -30,9 +30,6 @@ import EmployerApplications from '../pages/employer/EmployerApplications';
 
 /**
  * Protected Route Guard
- * - Shows loading spinner while auth state initializes
- * - Redirects unauthenticated users to /login
- * - Redirects mismatched roles to their correct dashboard
  */
 const ProtectedRoute = ({ children, roleRequired }) => {
   const { user, loading } = useAuth();
@@ -62,7 +59,7 @@ const ProtectedRoute = ({ children, roleRequired }) => {
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* 🌍 Public Routes (Wrapped in MainLayout) */}
+      {/* 🌍 Public Routes */}
       <Route path="/" element={<MainLayout />}>
         <Route index element={<Home />} />
         <Route path="jobs" element={<Jobs />} />
@@ -76,22 +73,25 @@ export default function AppRoutes() {
         <Route path="contact" element={<Contact />} />
       </Route>
 
-      {/* 🔑 Standalone Auth Pages (No Layout) */}
+      {/* 🔑 Standalone Auth Pages */}
       <Route path="login" element={<Login />} />
       <Route path="signup" element={<Signup />} />
       <Route path="forgot-password" element={<ForgotPassword />} />
 
-      {/* 🛡️ Protected Routes with MainLayout */}
+      {/* 🛡️ Protected Routes */}
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="admin" element={
-          <ProtectedRoute roleRequired="admin">
-            <Admin />
-          </ProtectedRoute>
-        } />
+        <Route 
+          path="admin" 
+          element={
+            <ProtectedRoute roleRequired="admin">
+              <Admin />
+            </ProtectedRoute>
+          } 
+        />
       </Route>
 
-      {/* 🏢 Employer Portal (Standalone Layout) */}
+      {/* 🏢 Employer Portal */}
       <Route element={
         <ProtectedRoute roleRequired="employer">
           <EmployerLayout />
