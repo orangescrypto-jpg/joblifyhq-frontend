@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FiUpload, FiCheck, FiBriefcase, FiAward } from 'react-icons/fi';
+import { FiCheck, FiBriefcase, FiAward, FiLink } from 'react-icons/fi';
 import { createJob } from '../../services/firebase/jobs';
 import { createScholarship } from '../../services/firebase/scholarships';
 
 export default function EmployerPostJob() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [listingType, setListingType] = useState('job'); // 'job' or 'scholarship'
-  
+  const [listingType, setListingType] = useState('job');
+
   const [form, setForm] = useState({
-    title: '', company: '', org: '', location: '', country: '', type: 'Full-time', funding: 'Full Funding', category: '', salary: '', benefits: '', deadline: '', description: ''
+    title: '', company: '', org: '', location: '', country: '',
+    type: 'Full-time', funding: 'Full Funding', category: '',
+    salary: '', benefits: '', deadline: '', description: '', applyLink: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -23,9 +25,9 @@ export default function EmployerPostJob() {
       navigate('/login');
       return;
     }
-    
+
     setSubmitting(true);
-    
+
     try {
       if (listingType === 'job') {
         await createJob({
@@ -37,6 +39,7 @@ export default function EmployerPostJob() {
           salary: form.salary,
           deadline: form.deadline,
           description: form.description,
+          applyLink: form.applyLink || '',
           postedByName: user?.company || user?.name
         }, user.uid);
       } else {
@@ -45,17 +48,24 @@ export default function EmployerPostJob() {
           org: form.org,
           country: form.country,
           funding: form.funding,
+          type: form.funding,
           category: form.category,
           benefits: form.benefits,
           deadline: form.deadline,
           description: form.description,
+          applyLink: form.applyLink || '',
           postedByName: user?.company || user?.name
         }, user.uid);
       }
-      
+
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
+        setForm({
+          title: '', company: '', org: '', location: '', country: '',
+          type: 'Full-time', funding: 'Full Funding', category: '',
+          salary: '', benefits: '', deadline: '', description: '', applyLink: ''
+        });
         navigate('/employer/listings');
       }, 2000);
     } catch (error) {
@@ -76,11 +86,13 @@ export default function EmployerPostJob() {
         <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600">
           <FiCheck size={28} />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{listingType === 'job' ? 'Job' : 'Scholarship'} Posted Successfully!</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+          {listingType === 'job' ? 'Job' : 'Scholarship'} Posted Successfully!
+        </h2>
         <p className="text-gray-500 dark:text-gray-400 mb-6">Your listing is now live and visible to candidates.</p>
         <div className="flex gap-3 justify-center">
           <button onClick={() => navigate('/employer/listings')} className="btn-secondary">View Listings</button>
-          <button onClick={() => { setSuccess(false); setForm({ title: '', company: '', org: '', location: '', country: '', type: 'Full-time', funding: 'Full Funding', category: '', salary: '', benefits: '', deadline: '', description: '' }); }} className="btn-primary">Post Another</button>
+          <button onClick={() => { setSuccess(false); }} className="btn-primary">Post Another</button>
         </div>
       </div>
     );
@@ -94,18 +106,18 @@ export default function EmployerPostJob() {
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create New Listing</h2>
         <p className="text-gray-500 dark:text-gray-400 text-sm">Post a job opportunity or scholarship for candidates.</p>
       </div>
-      
+
       {/* Listing Type Toggle */}
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex gap-3">
-          <button 
+          <button
             type="button"
             onClick={() => setListingType('job')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 font-medium transition ${isJob ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
           >
             <FiBriefcase /> Post a Job
           </button>
-          <button 
+          <button
             type="button"
             onClick={() => setListingType('scholarship')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 font-medium transition ${!isJob ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
@@ -114,7 +126,7 @@ export default function EmployerPostJob() {
           </button>
         </div>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
@@ -172,6 +184,21 @@ export default function EmployerPostJob() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Application Deadline</label>
             <input type="date" value={form.deadline} onChange={(e) => handleInputChange('deadline', e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
           </div>
+
+          {/* APPLY LINK - works for both job and scholarship */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <span className="flex items-center gap-1"><FiLink size={14} /> Apply Link <span className="text-gray-400 font-normal">(optional)</span></span>
+            </label>
+            <input
+              type="url"
+              value={form.applyLink}
+              onChange={(e) => handleInputChange('applyLink', e.target.value)}
+              className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="https://yourcompany.com/apply"
+            />
+            <p className="text-xs text-gray-400 mt-1">Candidates will see an "Apply Now" button linking here</p>
+          </div>
         </div>
 
         <div>
@@ -179,14 +206,7 @@ export default function EmployerPostJob() {
           <textarea value={form.description} onChange={(e) => handleInputChange('description', e.target.value)} rows={6} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-none" placeholder={isJob ? 'Describe the role, responsibilities, and requirements...' : 'Describe eligibility criteria, benefits, and how to apply...'} required />
         </div>
 
-        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-primary-500 transition cursor-pointer">
-          <input type="file" accept=".pdf,.doc,.docx,.png,.jpg" className="absolute inset-0 opacity-0 cursor-pointer" />
-          <FiUpload size={32} className="mx-auto text-gray-400 mb-2" />
-          <p className="text-sm text-gray-600 dark:text-gray-400">Upload {isJob ? 'company logo' : 'organization logo'} (optional)</p>
-          <p className="text-xs text-gray-400 mt-1">PNG, JPG, PDF up to 2MB</p>
-        </div>
-
-        {/* Boost/Promote Option */}
+        {/* Boost Option */}
         <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg text-amber-600">
