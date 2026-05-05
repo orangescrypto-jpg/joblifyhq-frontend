@@ -29,7 +29,7 @@ export default function Home() {
 
         setJobs(jobsArray.slice(0, 3));
         setScholarships((scholarshipsData || []).slice(0, 3));
-        setBlogs((blogsData || []).slice(0, 3));
+        setBlogs((blogsData || []).slice(0, 6));
       } catch (error) {
         console.error('Error fetching home data:', error);
       } finally {
