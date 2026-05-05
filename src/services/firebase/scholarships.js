@@ -44,16 +44,16 @@ export const getScholarshipById = async (id) => {
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    await updateDoc(docRef, {
+    // Increment view count silently — don't block on failure (guests can't write)
+    updateDoc(docRef, {
       views: (docSnap.data().views || 0) + 1,
       updatedAt: Timestamp.now()
-    });
+    }).catch(() => {});
     return { id: docSnap.id, ...docSnap.data() };
   }
   return null;
 };
 
-// FIXED: admin can edit any scholarship — removed strict ownership check
 export const updateScholarship = async (id, updates, userId) => {
   const schRef = doc(db, 'scholarships', id);
   await updateDoc(schRef, {
@@ -62,7 +62,6 @@ export const updateScholarship = async (id, updates, userId) => {
   });
 };
 
-// FIXED: admin can delete any scholarship — removed strict ownership check
 export const deleteScholarship = async (id, userId) => {
   await deleteDoc(doc(db, 'scholarships', id));
 };
