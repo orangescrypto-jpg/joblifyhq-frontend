@@ -9,6 +9,9 @@ import { getJobs } from '../services/firebase/jobs';
 import { getScholarships } from '../services/firebase/scholarships';
 import { getBlogs } from '../services/firebase/blog';
 
+const sortFeaturedFirst = (arr) =>
+  [...arr].sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
+
 export default function Home() {
   const [jobs, setJobs] = useState([]);
   const [scholarships, setScholarships] = useState([]);
@@ -24,12 +27,11 @@ export default function Home() {
           getBlogs()
         ]);
 
-        // FIXED: getJobs() returns { jobs, lastDoc, hasMore } not an array
         const jobsArray = Array.isArray(jobsResult) ? jobsResult : (jobsResult?.jobs || []);
 
-        setJobs(jobsArray.slice(0, 3));
-        setScholarships((scholarshipsData || []).slice(0, 3));
-        setBlogs((blogsData || []).slice(0, 6));
+        setJobs(sortFeaturedFirst(jobsArray).slice(0, 3));
+        setScholarships(sortFeaturedFirst(scholarshipsData || []).slice(0, 3));
+        setBlogs((blogsData || []).slice(0, 5));
       } catch (error) {
         console.error('Error fetching home data:', error);
       } finally {
