@@ -6,13 +6,14 @@ import { getBlogs, createBlog, updateBlog, deleteBlog } from '../services/fireba
 import AdminTable from '../components/admin/AdminTable';
 import AdminFormModal from '../components/admin/AdminFormModal';
 import DeleteModal from '../components/common/DeleteModal';
-import { FiBriefcase, FiAward, FiBookOpen, FiUsers, FiPlus } from 'react-icons/fi';
+import { FiBriefcase, FiAward, FiBookOpen, FiUsers, FiPlus, FiAlertCircle } from 'react-icons/fi';
 
 export default function Admin() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('job');
   const [data, setData] = useState({ job: [], scholarship: [], blog: [] });
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
 
   const [formModal, setFormModal] = useState({ open: false, type: '', item: null });
   const [deleteModal, setDeleteModal] = useState({ open: false, id: '', type: '' });
@@ -20,24 +21,33 @@ export default function Admin() {
   const [saveSuccess, setSaveSuccess] = useState('');
 
   useEffect(() => {
+    // Guard: don't fetch if user not ready or not admin
+    if (!user?.uid || user?.role !== 'admin') return;
+
     const fetchData = async () => {
+      setFetchError('');
       try {
         const [jobsData, scholarshipsData, blogsData] = await Promise.all([
-          getJobs(),
-          getScholarships(),
-          getBlogs()
+          getJobs().catch(() => []),
+          getScholarships().catch(() => []),
+          getBlogs().catch(() => []),
         ]);
-        setData({ job: jobsData, scholarship: scholarshipsData, blog: blogsData });
+        setData({
+          job: Array.isArray(jobsData) ? jobsData : [],
+          scholarship: Array.isArray(scholarshipsData) ? scholarshipsData : [],
+          blog: Array.isArray(blogsData) ? blogsData : [],
+        });
       } catch (error) {
         console.error('Error fetching admin data:', error);
+        setFetchError('Failed to load data. Check your Firestore permissions for admin role.');
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
 
-  // FIXED: closes modal on success, shows feedback banners instead of alert()
+    fetchData();
+  }, [user]);
+
   const handleSave = async (item) => {
     setSaveError('');
     setSaveSuccess('');
@@ -78,13 +88,12 @@ export default function Admin() {
         };
       });
 
-      // Close modal and show success
       setFormModal({ open: false, type: '', item: null });
       setSaveSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} saved successfully!`);
       setTimeout(() => setSaveSuccess(''), 3000);
     } catch (error) {
       console.error('Error saving:', error);
-      setSaveError('Failed to save. Please check your permissions and try again.');
+      setSaveError('Failed to save. Please check your Firestore permissions and try again.');
       setTimeout(() => setSaveError(''), 5000);
     }
   };
@@ -172,11 +181,32 @@ export default function Admin() {
     { label: 'Total Users', value: 1240, icon: <FiUsers />, color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' },
   ];
 
+  // Show a safe error UI instead of crashing the whole app
+  if (fetchError) {
+    return (
+      <div className="max-w-6xl mx-auto py-8 px-4">
+        <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Admin Dashboard</h1>
+        <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400">
+          <FiAlertCircle className="mt-0.5 shrink-0" size={20} />
+          <div>
+            <p className="font-medium">Could not load admin data</p>
+            <p className="text-sm mt-1">{fetchError}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 text-sm underline hover:no-underline"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Admin Dashboard</h1>
 
-      {/* Success/Error Notifications */}
       {saveSuccess && (
         <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm rounded-lg">
           ✓ {saveSuccess}
@@ -188,7 +218,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map(s => (
           <div key={s.label} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
@@ -201,7 +230,6 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 pb-2 overflow-x-auto">
         {tabs.map(t => (
           <button
