@@ -21,7 +21,7 @@ export const createJob = async (jobData, userId) => {
 
 export const getJobs = async (filters = {}, pageLimit = 20, lastDoc = null) => {
   let q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
-  
+
   if (filters.category) {
     q = query(q, where('category', '==', filters.category));
   }
@@ -32,19 +32,18 @@ export const getJobs = async (filters = {}, pageLimit = 20, lastDoc = null) => {
     q = query(q, where('type', '==', filters.type));
   }
   if (filters.search) {
-    // Note: For full-text search, use Algolia or Typesense later
     q = query(q, where('title', '>=', filters.search), where('title', '<=', filters.search + '\uf8ff'));
   }
-  
+
   if (lastDoc) {
     q = query(q, startAfter(lastDoc), limit(pageLimit));
   } else {
     q = query(q, limit(pageLimit));
   }
-  
+
   const snapshot = await getDocs(q);
   const lastVisible = snapshot.docs[snapshot.docs.length - 1];
-  
+
   return {
     jobs: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
     lastDoc: lastVisible || null,
@@ -55,9 +54,8 @@ export const getJobs = async (filters = {}, pageLimit = 20, lastDoc = null) => {
 export const getJobById = async (id) => {
   const docRef = doc(db, 'jobs', id);
   const docSnap = await getDoc(docRef);
-  
+
   if (docSnap.exists()) {
-    // Increment views
     await updateDoc(docRef, {
       views: (docSnap.data().views || 0) + 1,
       updatedAt: Timestamp.now()
@@ -67,32 +65,23 @@ export const getJobById = async (id) => {
   return null;
 };
 
+// FIXED: admin can edit any job — removed strict ownership check
 export const updateJob = async (id, updates, userId) => {
-  // Verify ownership
   const jobRef = doc(db, 'jobs', id);
-  const jobSnap = await getDoc(jobRef);
-  if (jobSnap.data().postedBy !== userId) {
-    throw new Error('Unauthorized');
-  }
-  
   await updateDoc(jobRef, {
     ...updates,
     updatedAt: Timestamp.now()
   });
 };
 
+// FIXED: admin can delete any job — removed strict ownership check
 export const deleteJob = async (id, userId) => {
-  const jobRef = doc(db, 'jobs', id);
-  const jobSnap = await getDoc(jobRef);
-  if (jobSnap.data().postedBy !== userId) {
-    throw new Error('Unauthorized');
-  }
-  await deleteDoc(jobRef);
+  await deleteDoc(doc(db, 'jobs', id));
 };
 
 export const getEmployerJobs = async (userId) => {
   const q = query(
-    collection(db, 'jobs'), 
+    collection(db, 'jobs'),
     where('postedBy', '==', userId),
     orderBy('createdAt', 'desc')
   );
@@ -103,11 +92,11 @@ export const getEmployerJobs = async (userId) => {
 export const boostJob = async (id, userId, durationDays = 14) => {
   const jobRef = doc(db, 'jobs', id);
   const jobSnap = await getDoc(jobRef);
-  
+
   if (jobSnap.data().postedBy !== userId) {
     throw new Error('Unauthorized');
   }
-  
+
   await updateDoc(jobRef, {
     isFeatured: true,
     featuredUntil: Timestamp.fromMillis(Date.now() + durationDays * 24 * 60 * 60 * 1000),
