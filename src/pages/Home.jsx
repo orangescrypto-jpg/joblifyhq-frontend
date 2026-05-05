@@ -18,17 +18,20 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [jobsData, scholarshipsData, blogsData] = await Promise.all([
+        const [jobsResult, scholarshipsData, blogsData] = await Promise.all([
           getJobs(),
           getScholarships(),
           getBlogs()
         ]);
-        
-        setJobs(jobsData.slice(0, 3));
-        setScholarships(scholarshipsData.slice(0, 3));
-        setBlogs(blogsData.slice(0, 3));
+
+        // FIXED: getJobs() returns { jobs, lastDoc, hasMore } not an array
+        const jobsArray = Array.isArray(jobsResult) ? jobsResult : (jobsResult?.jobs || []);
+
+        setJobs(jobsArray.slice(0, 3));
+        setScholarships((scholarshipsData || []).slice(0, 3));
+        setBlogs((blogsData || []).slice(0, 3));
       } catch (error) {
-        console.error('Error fetching home ', error);
+        console.error('Error fetching home data:', error);
       } finally {
         setLoading(false);
       }
