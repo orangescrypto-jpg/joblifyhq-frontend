@@ -18,37 +18,41 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise(res => setTimeout(res, 800));
-    onSubmit({ ...form, id: initialData?.id || `new_${Date.now()}`, type });
-    setLoading(false);
-    onClose();
+    try {
+      await onSubmit({ ...form, id: initialData?.id, type });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fields = {
     job: [
-      { key: 'title', label: 'Job Title', type: 'text' },
-      { key: 'company', label: 'Company', type: 'text' },
-      { key: 'location', label: 'Location', type: 'text' },
-      { key: 'type', label: 'Job Type', type: 'select', options: ['Full-time', 'Part-time', 'Remote', 'Contract'] },
-      { key: 'salary', label: 'Salary', type: 'text' },
-      { key: 'deadline', label: 'Deadline', type: 'date' },
-      { key: 'description', label: 'Description', type: 'textarea' },
+      { key: 'title', label: 'Job Title', type: 'text', required: true },
+      { key: 'company', label: 'Company', type: 'text', required: true },
+      { key: 'location', label: 'Location', type: 'text', required: true },
+      { key: 'type', label: 'Job Type', type: 'select', options: ['Full-time', 'Part-time', 'Remote', 'Contract'], required: true },
+      { key: 'salary', label: 'Salary', type: 'text', required: false },
+      { key: 'deadline', label: 'Deadline', type: 'date', required: true },
+      { key: 'applyLink', label: 'Apply Link (URL)', type: 'url', required: false },
+      { key: 'description', label: 'Description', type: 'textarea', required: true },
     ],
     scholarship: [
-      { key: 'title', label: 'Title', type: 'text' },
-      { key: 'org', label: 'Organization', type: 'text' },
-      { key: 'country', label: 'Country', type: 'text' },
-      { key: 'type', label: 'Funding Type', type: 'select', options: ['Full Funding', 'Partial Funding', 'Grant'] },
-      { key: 'deadline', label: 'Deadline', type: 'date' },
-      { key: 'description', label: 'Description', type: 'textarea' },
+      { key: 'title', label: 'Title', type: 'text', required: true },
+      { key: 'org', label: 'Organization', type: 'text', required: true },
+      { key: 'country', label: 'Country', type: 'text', required: true },
+      { key: 'type', label: 'Funding Type', type: 'select', options: ['Full Funding', 'Partial Funding', 'Grant'], required: true },
+      { key: 'deadline', label: 'Deadline', type: 'date', required: true },
+      { key: 'benefits', label: 'Benefits (e.g. Tuition + Stipend)', type: 'text', required: false },
+      { key: 'applyLink', label: 'Apply Link (URL)', type: 'url', required: false },
+      { key: 'description', label: 'Description', type: 'textarea', required: true },
     ],
     blog: [
-      { key: 'title', label: 'Title', type: 'text' },
-      { key: 'author', label: 'Author', type: 'text' },
-      { key: 'category', label: 'Category', type: 'text' },
-      { key: 'image', label: 'Featured Image URL', type: 'url' },
-      { key: 'excerpt', label: 'Short Excerpt', type: 'textarea' },
-      { key: 'content', label: 'Content (HTML supported)', type: 'textarea', rows: 12 },
+      { key: 'title', label: 'Title', type: 'text', required: true },
+      { key: 'author', label: 'Author', type: 'text', required: true },
+      { key: 'category', label: 'Category', type: 'text', required: true },
+      { key: 'image', label: 'Featured Image URL', type: 'url', required: false },
+      { key: 'excerpt', label: 'Short Excerpt', type: 'textarea', required: true },
+      { key: 'content', label: 'Content (HTML supported)', type: 'textarea', rows: 12, required: true },
     ]
   };
 
@@ -64,9 +68,17 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {currentFields.map(f => (
             <div key={f.key} className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{f.label}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {f.label}
+                {!f.required && <span className="text-gray-400 text-xs ml-1">(optional)</span>}
+              </label>
               {f.type === 'select' ? (
-                <select value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)} className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white" required>
+                <select
+                  value={form[f.key] || ''}
+                  onChange={(e) => handleChange(f.key, e.target.value)}
+                  className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  required={f.required}
+                >
                   <option value="">Select...</option>
                   {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
@@ -74,35 +86,48 @@ export default function AdminFormModal({ isOpen, onClose, type, initialData, onS
                 <div>
                   {type === 'blog' && f.key === 'content' && (
                     <div className="flex gap-2 mb-2">
-                      <button type="button" onClick={() => setPreviewMode(!previewMode)} className="px-3 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewMode(!previewMode)}
+                        className="px-3 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition"
+                      >
                         {previewMode ? 'Edit HTML' : 'Preview'}
                       </button>
                     </div>
                   )}
                   {previewMode && type === 'blog' && f.key === 'content' ? (
-                    <div 
+                    <div
                       className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 min-h-[200px] prose dark:prose-invert max-w-none"
-                      dangerouslySetInnerHTML={{ __html: form[f.key] || '<p class="text-gray-400 italic">Write content in HTML mode to see preview...</p>' }} 
+                      dangerouslySetInnerHTML={{ __html: form[f.key] || '<p class="text-gray-400 italic">Preview will appear here...</p>' }}
                     />
                   ) : (
-                    <textarea 
-                      value={form[f.key] || ''} 
-                      onChange={(e) => handleChange(f.key, e.target.value)} 
-                      rows={f.rows || 4} 
-                      className="input-field font-mono text-sm resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-white" 
-                      placeholder={type === 'blog' && f.key === 'content' ? '<p>Write HTML content here. Example: &lt;h2&gt;Title&lt;/h2&gt;&lt;p&gt;Text&lt;/p&gt;' : ''}
-                      required 
+                    <textarea
+                      value={form[f.key] || ''}
+                      onChange={(e) => handleChange(f.key, e.target.value)}
+                      rows={f.rows || 4}
+                      className="input-field font-mono text-sm resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                      placeholder={type === 'blog' && f.key === 'content' ? '<p>Write HTML content here...</p>' : ''}
+                      required={f.required}
                     />
                   )}
                 </div>
               ) : (
-                <input type={f.type} value={form[f.key] || ''} onChange={(e) => handleChange(f.key, e.target.value)} className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white" required />
+                <input
+                  type={f.type}
+                  value={form[f.key] || ''}
+                  onChange={(e) => handleChange(f.key, e.target.value)}
+                  className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  placeholder={f.key === 'applyLink' ? 'https://example.com/apply' : ''}
+                  required={f.required}
+                />
               )}
             </div>
           ))}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
             <button type="button" onClick={onClose} className="btn-secondary dark:bg-gray-800 dark:text-white dark:border-gray-700">Cancel</button>
-            <button type="submit" disabled={loading} className="btn-primary">{loading ? 'Saving...' : (initialData ? 'Update' : 'Create')}</button>
+            <button type="submit" disabled={loading} className="btn-primary">
+              {loading ? 'Saving...' : (initialData ? 'Update' : 'Create')}
+            </button>
           </div>
         </form>
       </div>
