@@ -3,25 +3,31 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiGlobe, FiCalendar, FiAward, FiBookmark, FiExternalLink } from 'react-icons/fi';
 import { getScholarshipById } from '../services/firebase/scholarships';
 import { useAuth } from '../context/AuthContext';
-import { useDashboard } from '../context/DashboardContext';
 
 export default function ScholarshipDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { savedScholarships, toggleSaveScholarship } = useDashboard();
   const [scholarship, setScholarship] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    // FIXED: now fetches from Firebase instead of mockData
-    getScholarshipById(id).then(data => {
-      setScholarship(data || null);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    getScholarshipById(id)
+      .then(data => {
+        setScholarship(data || null);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [id]);
 
-  const isSaved = savedScholarships.some(s => s.scholarshipId === id || s.id === id);
+  const handleSave = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    setSaved(prev => !prev);
+  };
 
   if (loading) return (
     <div className="animate-pulse space-y-4 p-10 max-w-4xl mx-auto">
@@ -50,8 +56,9 @@ export default function ScholarshipDetails() {
               <p className="text-lg text-primary-600 font-medium mt-1">{scholarship.org}</p>
             </div>
             <button
-              onClick={() => user ? toggleSaveScholarship(scholarship) : navigate('/login')}
-              className={`p-3 rounded-lg border self-start ${isSaved ? 'bg-primary-50 border-primary-200 text-primary-600' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'} hover:opacity-80 transition`}
+              onClick={handleSave}
+              className={`p-3 rounded-lg border self-start ${saved ? 'bg-primary-50 border-primary-200 text-primary-600' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'} hover:opacity-80 transition`}
+              title={user ? (saved ? 'Unsave' : 'Save Scholarship') : 'Login to save'}
             >
               <FiBookmark size={20} />
             </button>
@@ -76,11 +83,11 @@ export default function ScholarshipDetails() {
           {/* Description */}
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Overview</h3>
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{scholarship.description}</p>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">{scholarship.description}</p>
           </div>
 
-          {/* Apply Link Button - shown only if admin added an apply link */}
-          {scholarship.applyLink && (
+          {/* Apply Button */}
+          {scholarship.applyLink ? (
             <a
               href={scholarship.applyLink}
               target="_blank"
@@ -89,9 +96,7 @@ export default function ScholarshipDetails() {
             >
               <FiExternalLink /> Apply Now
             </a>
-          )}
-
-          {!scholarship.applyLink && (
+          ) : (
             <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-center text-gray-500 dark:text-gray-400 text-sm">
               Application link not available. Search for this scholarship directly.
             </div>
