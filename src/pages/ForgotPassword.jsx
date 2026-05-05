@@ -19,13 +19,9 @@ export default function ForgotPassword() {
       await sendPasswordResetEmail(auth, email);
       setSent(true);
     } catch (err) {
-      if (err.code === 'auth/user-not-found') {
-        setError('No account found with this email address.');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address.');
-      } else {
-        setError('Failed to send reset email. Please try again.');
-      }
+      console.error('Password reset error:', err.code);
+      // Hide Firebase technical errors - show generic success message for security
+      setSent(true);
     } finally {
       setLoading(false);
     }
@@ -46,7 +42,7 @@ export default function ForgotPassword() {
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Forgot password?</h2>
               <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
-                No worries! Enter your email and we'll send you reset instructions.
+                Enter your email address and we'll send you a link to reset your password.
               </p>
             </div>
 
@@ -87,14 +83,19 @@ export default function ForgotPassword() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Check your email!</h2>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
-              We've sent password reset instructions to <strong>{email}</strong>
+              If an account exists with <strong>{email}</strong>, we've sent password reset instructions to your email.
             </p>
-            <button
-              onClick={() => { setSent(false); setEmail(''); }}
-              className="text-primary-600 hover:text-primary-700 font-medium"
-            >
-              Try another email
-            </button>
+            <div className="space-y-3">
+              <Link to="/login" className="block w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 px-4 rounded-lg transition">
+                Back to Login
+              </Link>
+              <button
+                onClick={() => { setSent(false); setEmail(''); }}
+                className="text-primary-600 hover:text-primary-700 font-medium text-sm"
+              >
+                Try another email
+              </button>
+            </div>
           </div>
         )}
       </div>
