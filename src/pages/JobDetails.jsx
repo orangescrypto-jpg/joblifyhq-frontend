@@ -5,6 +5,39 @@ import { getJobById } from '../services/firebase/jobs';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../context/DashboardContext';
 
+// Renders description as proper paragraphs/bullets whether it's plain text or HTML
+function RichDescription({ text }) {
+  if (!text) return null;
+  // If it contains HTML tags, render as HTML
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    return (
+      <div
+        className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: text }}
+      />
+    );
+  }
+  // Otherwise split by double newline into paragraphs, and handle bullet lines
+  return (
+    <div className="space-y-3 text-gray-700 dark:text-gray-300 leading-relaxed">
+      {text.split('\n\n').map((block, i) => {
+        const lines = block.split('\n');
+        const hasBullets = lines.some(l => l.startsWith('• '));
+        if (hasBullets) {
+          return (
+            <ul key={i} className="list-disc list-inside space-y-1">
+              {lines.map((line, j) => (
+                <li key={j}>{line.startsWith('• ') ? line.slice(2) : line}</li>
+              ))}
+            </ul>
+          );
+        }
+        return <p key={i}>{block}</p>;
+      })}
+    </div>
+  );
+}
+
 export default function JobDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -14,7 +47,6 @@ export default function JobDetails() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // FIXED: fetch from Firebase instead of mockData
     getJobById(id).then(data => {
       setJob(data || null);
       setLoading(false);
@@ -42,8 +74,6 @@ export default function JobDetails() {
     <div className="max-w-4xl mx-auto">
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         <div className="p-6 md:p-8">
-
-          {/* Header */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{job.title}</h1>
@@ -57,7 +87,6 @@ export default function JobDetails() {
             </button>
           </div>
 
-          {/* Info Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
               <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">Location</span>
@@ -77,20 +106,15 @@ export default function JobDetails() {
             </div>
           </div>
 
-          {/* Description */}
+          {/* FIXED: renders paragraphs and bullets properly */}
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">About the Role</h3>
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{job.description}</p>
+            <RichDescription text={job.description} />
           </div>
 
-          {/* Apply Link Button */}
           {job.applyLink ? (
-            <a
-              href={job.applyLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition text-lg"
-            >
+            <a href={job.applyLink} target="_blank" rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition text-lg">
               <FiExternalLink /> Apply Now
             </a>
           ) : (
@@ -98,7 +122,6 @@ export default function JobDetails() {
               Application link not available. Contact the company directly.
             </div>
           )}
-
         </div>
       </div>
     </div>
