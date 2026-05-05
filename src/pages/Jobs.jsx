@@ -1,113 +1,158 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FiMapPin, FiClock, FiDollarSign, FiBookmark, FiExternalLink, FiCalendar } from 'react-icons/fi';
-import { getJobById } from '../services/firebase/jobs';
-import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { FiSearch, FiMapPin, FiFilter } from 'react-icons/fi';
+import { getJobs } from '../services/firebase/jobs';
+import JobCard from '../components/job/JobCard';
+import LoadingSkeleton from '../components/common/LoadingSkeleton';
+import EmptyState from '../components/common/EmptyState';
 
-export default function JobDetails() {
-  const { id } = useParams();
+const JOB_TYPES = ['Full-time', 'Part-time', 'Contract', 'Remote', 'Internship'];
+
+export default function Jobs() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [job, setJob] = useState(null);
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState(false);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    getJobById(id)
-      .then(data => {
-        setJob(data || null);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [id]);
+  const fetchJobs = async (reset = false) => {
+    try {
+      const filters = {};
+      if (typeFilter) filters.type = typeFilter;
+      if (locationFilter) filters.location = locationFilter;
+      if (search) filters.search = search;
 
-  const handleSave = () => {
-    if (!user) {
-      navigate('/login');
-      return;
+      const result = await getJobs(filters, 20, reset ? null : lastDoc);
+      if (reset) {
+        setJobs(result.jobs);
+      } else {
+        setJobs(prev => [...prev, ...result.jobs]);
+      }
+      setLastDoc(result.lastDoc);
+      setHasMore(result.hasMore);
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-    setSaved(prev => !prev);
   };
 
-  if (loading) return (
-    <div className="animate-pulse space-y-4 p-10 max-w-4xl mx-auto">
-      <div className="h-8 w-3/4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-      <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded"></div>
-      <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-    </div>
-  );
+  useEffect(() => {
+    setLoading(true);
+    fetchJobs(true);
+  }, [typeFilter, locationFilter]);
 
-  if (!job) return (
-    <div className="text-center py-20">
-      <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Job Not Found</h2>
-      <button onClick={() => navigate('/jobs')} className="btn-primary">Browse Jobs</button>
-    </div>
-  );
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    fetchJobs(true);
+  };
+
+  const handleLoadMore = () => {
+    setLoadingMore(true);
+    fetchJobs(false);
+  };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-        <div className="p-6 md:p-8">
+    <div className="max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Browse Jobs</h1>
+        <p className="text-gray-500 dark:text-gray-400">Find your next career opportunity</p>
+      </div>
 
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{job.title}</h1>
-              <p className="text-lg text-primary-600 font-medium mt-1">{job.company}</p>
-            </div>
-            <button
-              onClick={handleSave}
-              className={`p-3 rounded-lg border self-start ${saved ? 'bg-primary-50 border-primary-200 text-primary-600' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'} hover:opacity-80 transition`}
-              title={user ? (saved ? 'Unsave Job' : 'Save Job') : 'Login to save'}
+      {/* Search & Filter Bar */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 mb-6 shadow-sm">
+        <form onSubmit={handleSearch} className="flex gap-3 mb-3">
+          <div className="relative flex-grow">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search job title or keyword..."
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-lg font-medium transition">
+            Search
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          >
+            <FiFilter size={16} /> Filters
+          </button>
+        </form>
+
+        {showFilters && (
+          <div className="flex flex-wrap gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+            <select
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
-              <FiBookmark size={20} />
-            </button>
+              <option value="">All Types</option>
+              {JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <div className="relative">
+              <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+              <input
+                type="text"
+                value={locationFilter}
+                onChange={e => setLocationFilter(e.target.value)}
+                placeholder="Filter by location..."
+                className="pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            {(typeFilter || locationFilter || search) && (
+              <button
+                onClick={() => { setTypeFilter(''); setLocationFilter(''); setSearch(''); }}
+                className="px-3 py-2 text-sm text-red-500 hover:text-red-600 font-medium"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
+        )}
+      </div>
 
-          {/* Info Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-              <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">Location</span>
-              <span className="font-medium text-gray-900 dark:text-white flex items-center justify-center gap-1"><FiMapPin size={14} /> {job.location}</span>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-              <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">Type</span>
-              <span className="font-medium text-gray-900 dark:text-white flex items-center justify-center gap-1"><FiClock size={14} /> {job.type}</span>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-              <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">Salary</span>
-              <span className="font-medium text-gray-900 dark:text-white flex items-center justify-center gap-1"><FiDollarSign size={14} /> {job.salary || 'N/A'}</span>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-              <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">Deadline</span>
-              <span className="font-medium text-gray-900 dark:text-white flex items-center justify-center gap-1"><FiCalendar size={14} /> {job.deadline}</span>
-            </div>
+      {/* Results */}
+      {loading ? (
+        <LoadingSkeleton count={6} />
+      ) : jobs.length === 0 ? (
+        <EmptyState
+          title="No jobs found"
+          message="Try adjusting your search or filters."
+        />
+      ) : (
+        <>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{jobs.length} job{jobs.length !== 1 ? 's' : ''} found</p>
+          <div className="space-y-4">
+            {jobs.map(job => (
+              <JobCard key={job.id} job={job} onClick={() => navigate(`/jobs/${job.id}`)} />
+            ))}
           </div>
-
-          {/* Description */}
-          <div className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">About the Role</h3>
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">{job.description}</p>
-          </div>
-
-          {/* Apply Button */}
-          {job.applyLink ? (
-            <a
-              href={job.applyLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition text-lg"
-            >
-              <FiExternalLink /> Apply Now
-            </a>
-          ) : (
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-center text-gray-500 dark:text-gray-400 text-sm">
-              Application link not available. Contact the company directly.
+          {hasMore && (
+            <div className="text-center mt-8">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="btn-secondary px-8 py-3"
+              >
+                {loadingMore ? 'Loading...' : 'Load More Jobs'}
+              </button>
             </div>
           )}
-
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
