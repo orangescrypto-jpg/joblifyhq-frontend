@@ -56,16 +56,16 @@ export const getJobById = async (id) => {
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    await updateDoc(docRef, {
+    // Increment view count silently — don't block on failure (guests can't write)
+    updateDoc(docRef, {
       views: (docSnap.data().views || 0) + 1,
       updatedAt: Timestamp.now()
-    });
+    }).catch(() => {});
     return { id: docSnap.id, ...docSnap.data() };
   }
   return null;
 };
 
-// FIXED: admin can edit any job — removed strict ownership check
 export const updateJob = async (id, updates, userId) => {
   const jobRef = doc(db, 'jobs', id);
   await updateDoc(jobRef, {
@@ -74,7 +74,6 @@ export const updateJob = async (id, updates, userId) => {
   });
 };
 
-// FIXED: admin can delete any job — removed strict ownership check
 export const deleteJob = async (id, userId) => {
   await deleteDoc(doc(db, 'jobs', id));
 };
