@@ -28,10 +28,10 @@ export const getBlogById = async (id) => {
   const docSnap = await getDoc(docRef);
   
   if (docSnap.exists()) {
-    // Increment view count
-    await updateDoc(docRef, {
+    // Increment view count silently — don't block on failure (guests can't write)
+    updateDoc(docRef, {
       views: (docSnap.data().views || 0) + 1
-    });
+    }).catch(() => {});
     return { id: docSnap.id, ...docSnap.data() };
   }
   return null;
