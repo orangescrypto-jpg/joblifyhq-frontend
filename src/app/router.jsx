@@ -28,9 +28,6 @@ import EmployerPostJob from '../pages/employer/EmployerPostJob';
 import EmployerListings from '../pages/employer/EmployerListings';
 import EmployerApplications from '../pages/employer/EmployerApplications';
 
-/**
- * Protected Route Guard
- */
 const ProtectedRoute = ({ children, roleRequired }) => {
   const { user, loading } = useAuth();
 
@@ -42,12 +39,9 @@ const ProtectedRoute = ({ children, roleRequired }) => {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
   if (roleRequired && user.role !== roleRequired) {
-    // Smart redirect based on actual user role
     if (user.role === 'admin') return <Navigate to="/admin" replace />;
     if (user.role === 'employer') return <Navigate to="/employer" replace />;
     return <Navigate to="/dashboard" replace />;
@@ -73,37 +67,50 @@ export default function AppRoutes() {
         <Route path="contact" element={<Contact />} />
       </Route>
 
-      {/* 🔑 Standalone Auth Pages */}
+      {/* 🔑 Auth Pages */}
       <Route path="login" element={<Login />} />
       <Route path="signup" element={<Signup />} />
       <Route path="forgot-password" element={<ForgotPassword />} />
 
-      {/* 🛡️ Protected Routes */}
-      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route 
-          path="admin" 
-          element={
-            <ProtectedRoute roleRequired="admin">
-              <Admin />
-            </ProtectedRoute>
-          } 
-        />
+      {/* 🛡️ Dashboard */}
+      <Route
+        path="dashboard"
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Dashboard />} />
+      </Route>
+
+      {/* 🔒 Admin - FIXED: single ProtectedRoute, no double-wrap */}
+      <Route
+        path="admin"
+        element={
+          <ProtectedRoute roleRequired="admin">
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Admin />} />
       </Route>
 
       {/* 🏢 Employer Portal */}
-      <Route element={
-        <ProtectedRoute roleRequired="employer">
-          <EmployerLayout />
-        </ProtectedRoute>
-      }>
+      <Route
+        element={
+          <ProtectedRoute roleRequired="employer">
+            <EmployerLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="employer" element={<EmployerDashboard />} />
         <Route path="employer/post-job" element={<EmployerPostJob />} />
         <Route path="employer/listings" element={<EmployerListings />} />
         <Route path="employer/applications" element={<EmployerApplications />} />
       </Route>
 
-      {/* 🚫 Catch-All Redirect */}
+      {/* 🚫 Catch-All */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
