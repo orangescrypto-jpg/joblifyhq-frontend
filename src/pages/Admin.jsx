@@ -1,267 +1,127 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { getJobs, createJob, updateJob, deleteJob } from '../services/firebase/jobs';
-import { getScholarships, createScholarship, updateScholarship, deleteScholarship } from '../services/firebase/scholarships';
-import { getBlogs, createBlog, updateBlog, deleteBlog } from '../services/firebase/blog';
-import AdminTable from '../components/admin/AdminTable';
-import AdminFormModal from '../components/admin/AdminFormModal';
-import DeleteModal from '../components/common/DeleteModal';
-import { FiBriefcase, FiAward, FiBookOpen, FiUsers, FiPlus, FiAlertCircle } from 'react-icons/fi';
+import { FiX } from 'react-icons/fi';
 
-export default function Admin() {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('job');
-  const [data, setData] = useState({ job: [], scholarship: [], blog: [] });
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState('');
-
-  const [formModal, setFormModal] = useState({ open: false, type: '', item: null });
-  const [deleteModal, setDeleteModal] = useState({ open: false, id: '', type: '' });
-  const [saveError, setSaveError] = useState('');
-  const [saveSuccess, setSaveSuccess] = useState('');
+export default function AdminFormModal({ isOpen, onClose, type, initialData, onSubmit }) {
+  const [form, setForm] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
 
   useEffect(() => {
-    // Guard: don't fetch if user not ready or not admin
-    if (!user?.uid || user?.role !== 'admin') return;
+    if (initialData) setForm(initialData);
+    else setForm({});
+  }, [initialData, isOpen]);
 
-    const fetchData = async () => {
-      setFetchError('');
-      try {
-        const [jobsData, scholarshipsData, blogsData] = await Promise.all([
-          getJobs().catch(() => []),
-          getScholarships().catch(() => []),
-          getBlogs().catch(() => []),
-        ]);
-        setData({
-          job: Array.isArray(jobsData) ? jobsData : [],
-          scholarship: Array.isArray(scholarshipsData) ? scholarshipsData : [],
-          blog: Array.isArray(blogsData) ? blogsData : [],
-        });
-      } catch (error) {
-        console.error('Error fetching admin data:', error);
-        setFetchError('Failed to load data. Check your Firestore permissions for admin role.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (!isOpen) return null;
 
-    fetchData();
-  }, [user]);
+  const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
-  const handleSave = async (item) => {
-    setSaveError('');
-    setSaveSuccess('');
-    try {
-      const { type, id, ...rest } = item;
-      let savedId = id;
-
-      if (type === 'job') {
-        if (id && !id.startsWith('new_')) {
-          await updateJob(id, rest, user.uid);
-        } else {
-          savedId = await createJob(rest, user.uid);
-        }
-      } else if (type === 'scholarship') {
-        if (id && !id.startsWith('new_')) {
-          await updateScholarship(id, rest, user.uid);
-        } else {
-          savedId = await createScholarship(rest, user.uid);
-        }
-      } else if (type === 'blog') {
-        if (id && !id.startsWith('new_')) {
-          await updateBlog(id, rest, user.uid);
-        } else {
-          savedId = await createBlog(rest, user.uid);
-        }
-      }
-
-      const finalItem = { ...item, id: savedId };
-
-      setData(prev => {
-        const arr = prev[type] || [];
-        const exists = arr.find(i => i.id === savedId);
-        return {
-          ...prev,
-          [type]: exists
-            ? arr.map(i => i.id === savedId ? { ...i, ...rest } : i)
-            : [...arr, finalItem]
-        };
-      });
-
-      setFormModal({ open: false, type: '', item: null });
-      setSaveSuccess(`${type.charAt(0).toUpperCase() + type.slice(1)} saved successfully!`);
-      setTimeout(() => setSaveSuccess(''), 3000);
-    } catch (error) {
-      console.error('Error saving:', error);
-      setSaveError('Failed to save. Please check your Firestore permissions and try again.');
-      setTimeout(() => setSaveError(''), 5000);
-    }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    await new Promise(res => setTimeout(res, 800));
+    onSubmit({ ...form, id: initialData?.id || `new_${Date.now()}`, type });
+    setLoading(false);
+    onClose();
   };
 
-  const handleDeleteConfirm = async () => {
-    try {
-      const { type, id } = deleteModal;
-      if (type === 'job') await deleteJob(id, user.uid);
-      else if (type === 'scholarship') await deleteScholarship(id, user.uid);
-      else if (type === 'blog') await deleteBlog(id);
-
-      setData(prev => ({
-        ...prev,
-        [type]: prev[type].filter(i => i.id !== id)
-      }));
-      setDeleteModal({ open: false, id: '', type: '' });
-    } catch (error) {
-      console.error('Error deleting:', error);
-      setSaveError('Failed to delete. Please try again.');
-      setTimeout(() => setSaveError(''), 5000);
-    }
+  const fields = {
+    job: [
+      { key: 'title', label: 'Job Title', type: 'text', required: true },
+      { key: 'company', label: 'Company', type: 'text', required: true },
+      { key: 'location', label: 'Location', type: 'text', required: true },
+      { key: 'type', label: 'Job Type', type: 'select', options: ['Full-time', 'Part-time', 'Remote', 'Contract'], required: true },
+      { key: 'salary', label: 'Salary', type: 'text', required: true },
+      { key: 'deadline', label: 'Deadline', type: 'date', required: true },
+      { key: 'applyLink', label: 'Apply Link (URL)', type: 'url', required: false },
+      { key: 'description', label: 'Description', type: 'textarea', required: true },
+    ],
+    scholarship: [
+      { key: 'title', label: 'Title', type: 'text', required: true },
+      { key: 'org', label: 'Organization', type: 'text', required: true },
+      { key: 'country', label: 'Country', type: 'text', required: true },
+      { key: 'type', label: 'Funding Type', type: 'select', options: ['Full Funding', 'Partial Funding', 'Grant'], required: true },
+      { key: 'deadline', label: 'Deadline', type: 'date', required: true },
+      { key: 'applyLink', label: 'Apply Link (URL)', type: 'url', required: false },
+      { key: 'description', label: 'Description', type: 'textarea', required: true },
+    ],
+    blog: [
+      { key: 'title', label: 'Title', type: 'text', required: true },
+      { key: 'author', label: 'Author', type: 'text', required: true },
+      { key: 'category', label: 'Category', type: 'text', required: true },
+      { key: 'image', label: 'Featured Image URL', type: 'url', required: true },
+      { key: 'excerpt', label: 'Short Excerpt', type: 'textarea', required: true },
+      { key: 'content', label: 'Content (HTML supported)', type: 'textarea', rows: 12, required: true },
+    ]
   };
 
-  const tabs = [
-    { id: 'job', label: 'Jobs', icon: <FiBriefcase /> },
-    { id: 'scholarship', label: 'Scholarships', icon: <FiAward /> },
-    { id: 'blog', label: 'Blog', icon: <FiBookOpen /> },
-  ];
-
-  const renderTable = (type) => {
-    const items = data[type] || [];
-    let headers = [], rows = [];
-
-    if (type === 'job') {
-      headers = ['Title', 'Company', 'Location', 'Deadline', 'Type'];
-      rows = items.map(j => ({ id: j.id, cells: [j.title, j.company, j.location, j.deadline, j.type] }));
-    } else if (type === 'scholarship') {
-      headers = ['Title', 'Organization', 'Country', 'Deadline', 'Funding'];
-      rows = items.map(s => ({ id: s.id, cells: [s.title, s.org, s.country, s.deadline, s.funding || s.type] }));
-    } else if (type === 'blog') {
-      headers = ['Title', 'Author', 'Category', 'Date'];
-      rows = items.map(b => ({
-        id: b.id,
-        cells: [
-          b.title,
-          b.author,
-          b.category,
-          b.createdAt?.toDate ? b.createdAt.toDate().toLocaleDateString() : b.date || 'Recently'
-        ]
-      }));
-    }
-
-    return (
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold capitalize text-gray-900 dark:text-white">
-            {type === 'blog' ? 'Blog Posts' : type + 's'} Management
-          </h2>
-          <button
-            onClick={() => setFormModal({ open: true, type, item: null })}
-            className="btn-primary flex items-center gap-2"
-          >
-            <FiPlus /> Add New
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-        ) : (
-          <AdminTable
-            headers={headers}
-            rows={rows}
-            onEdit={(id) => setFormModal({ open: true, type, item: items.find(i => i.id === id) })}
-            onDelete={(id) => setDeleteModal({ open: true, id, type })}
-          />
-        )}
-      </div>
-    );
-  };
-
-  const stats = [
-    { label: 'Total Jobs', value: data.job.length, icon: <FiBriefcase />, color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
-    { label: 'Scholarships', value: data.scholarship.length, icon: <FiAward />, color: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' },
-    { label: 'Blog Posts', value: data.blog.length, icon: <FiBookOpen />, color: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' },
-    { label: 'Total Users', value: 1240, icon: <FiUsers />, color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' },
-  ];
-
-  // Show a safe error UI instead of crashing the whole app
-  if (fetchError) {
-    return (
-      <div className="max-w-6xl mx-auto py-8 px-4">
-        <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Admin Dashboard</h1>
-        <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400">
-          <FiAlertCircle className="mt-0.5 shrink-0" size={20} />
-          <div>
-            <p className="font-medium">Could not load admin data</p>
-            <p className="text-sm mt-1">{fetchError}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-3 text-sm underline hover:no-underline"
-            >
-              Try again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const currentFields = fields[type] || [];
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Admin Dashboard</h1>
-
-      {saveSuccess && (
-        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm rounded-lg">
-          ✓ {saveSuccess}
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center p-5 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
+          <h3 className="text-lg font-semibold capitalize dark:text-white">{initialData ? 'Edit' : 'Create'} {type}</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"><FiX size={20} /></button>
         </div>
-      )}
-      {saveError && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm rounded-lg">
-          ✗ {saveError}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map(s => (
-          <div key={s.label} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
-            <div className={`p-3 rounded-lg ${s.color}`}>{s.icon}</div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{s.label}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{s.value}</p>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {currentFields.map(f => (
+            <div key={f.key} className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {f.label}
+                {!f.required && <span className="text-gray-400 text-xs ml-1">(optional)</span>}
+              </label>
+              {f.type === 'select' ? (
+                <select
+                  value={form[f.key] || ''}
+                  onChange={(e) => handleChange(f.key, e.target.value)}
+                  className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  required={f.required}
+                >
+                  <option value="">Select...</option>
+                  {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              ) : f.type === 'textarea' ? (
+                <div>
+                  {type === 'blog' && f.key === 'content' && (
+                    <div className="flex gap-2 mb-2">
+                      <button type="button" onClick={() => setPreviewMode(!previewMode)} className="px-3 py-1 text-xs bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition">
+                        {previewMode ? 'Edit HTML' : 'Preview'}
+                      </button>
+                    </div>
+                  )}
+                  {previewMode && type === 'blog' && f.key === 'content' ? (
+                    <div
+                      className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 min-h-[200px] prose dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: form[f.key] || '<p class="text-gray-400 italic">Preview will appear here...</p>' }}
+                    />
+                  ) : (
+                    <textarea
+                      value={form[f.key] || ''}
+                      onChange={(e) => handleChange(f.key, e.target.value)}
+                      rows={f.rows || 4}
+                      className="input-field font-mono text-sm resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                      required={f.required}
+                    />
+                  )}
+                </div>
+              ) : (
+                <input
+                  type={f.type}
+                  value={form[f.key] || ''}
+                  onChange={(e) => handleChange(f.key, e.target.value)}
+                  className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  placeholder={f.key === 'applyLink' ? 'https://example.com/apply' : ''}
+                  required={f.required}
+                />
+              )}
             </div>
+          ))}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <button type="button" onClick={onClose} className="btn-secondary dark:bg-gray-800 dark:text-white dark:border-gray-700">Cancel</button>
+            <button type="submit" disabled={loading} className="btn-primary">{loading ? 'Saving...' : (initialData ? 'Update' : 'Create')}</button>
           </div>
-        ))}
+        </form>
       </div>
-
-      <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700 pb-2 overflow-x-auto">
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
-              activeTab === t.id
-                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-            }`}
-          >
-            {t.icon} {t.label}
-          </button>
-        ))}
-      </div>
-
-      {renderTable(activeTab)}
-
-      <AdminFormModal
-        isOpen={formModal.open}
-        onClose={() => setFormModal({ open: false, type: '', item: null })}
-        type={formModal.type}
-        initialData={formModal.item}
-        onSubmit={handleSave}
-      />
-
-      <DeleteModal
-        isOpen={deleteModal.open}
-        onClose={() => setDeleteModal({ open: false, id: '', type: '' })}
-        onConfirm={handleDeleteConfirm}
-        itemName={activeTab === 'blog' ? 'post' : activeTab}
-      />
     </div>
   );
 }
