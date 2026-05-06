@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiMapPin, FiClock, FiDollarSign, FiBookmark, FiExternalLink, FiCalendar } from 'react-icons/fi';
+import { FiMapPin, FiClock, FiDollarSign, FiBookmark, FiExternalLink, FiCalendar, FiSend, FiMail } from 'react-icons/fi';
 import { getJobById } from '../services/firebase/jobs';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../context/DashboardContext';
 import ShareButtons from '../components/blog/ShareButtons';
+import ApplyModal from '../components/common/ApplyModal';
 
 function RichDescription({ text }) {
   if (!text) return null;
@@ -43,6 +44,7 @@ export default function JobDetails() {
   const { savedJobs, toggleSaveJob } = useDashboard();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [applyOpen, setApplyOpen] = useState(false);
 
   useEffect(() => {
     getJobById(id).then(data => {
@@ -68,10 +70,17 @@ export default function JobDetails() {
     </div>
   );
 
+  // Determine what external apply options are available
+  const hasWebsite = !!job.applyLink;
+  const hasEmail = !!job.applyEmail;
+  const hasExternalOption = hasWebsite || hasEmail;
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         <div className="p-6 md:p-8">
+
+          {/* Header */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{job.title}</h1>
@@ -85,6 +94,7 @@ export default function JobDetails() {
             </button>
           </div>
 
+          {/* Meta Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
               <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">Location</span>
@@ -104,20 +114,52 @@ export default function JobDetails() {
             </div>
           </div>
 
+          {/* Description */}
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">About the Role</h3>
             <RichDescription text={job.description} />
           </div>
 
-          {job.applyLink ? (
-            <a href={job.applyLink} target="_blank" rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition text-lg">
-              <FiExternalLink /> Apply Now
-            </a>
-          ) : (
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-center text-gray-500 dark:text-gray-400 text-sm">
-              Application link not available. Contact the company directly.
-            </div>
+          {/* Apply Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+
+            {/* Primary: In-app apply — always shown */}
+            <button
+              onClick={() => setApplyOpen(true)}
+              className="flex-1 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition text-lg"
+            >
+              <FiSend size={18} /> Apply on JoblifyHQ
+            </button>
+
+            {/* Secondary: Apply via Website — only if applyLink exists */}
+            {hasWebsite && (
+              <a
+                href={job.applyLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 font-bold py-3 px-6 rounded-xl transition text-lg"
+              >
+                <FiExternalLink size={18} /> Apply on Website
+              </a>
+            )}
+
+            {/* Secondary: Apply via Email — only if applyEmail exists */}
+            {hasEmail && (
+              <a
+                href={`mailto:${job.applyEmail}?subject=Application for ${encodeURIComponent(job.title)}`}
+                className="flex-1 flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 font-bold py-3 px-6 rounded-xl transition text-lg"
+              >
+                <FiMail size={18} /> Apply via Email
+              </a>
+            )}
+
+          </div>
+
+          {/* Helper hint if both website and email exist */}
+          {hasWebsite && hasEmail && (
+            <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-2">
+              You can apply through the website or send your application directly by email.
+            </p>
           )}
 
           {/* Share Section */}
@@ -130,6 +172,14 @@ export default function JobDetails() {
 
         </div>
       </div>
+
+      {/* In-app Apply Modal */}
+      <ApplyModal
+        isOpen={applyOpen}
+        onClose={() => setApplyOpen(false)}
+        opportunity={job}
+        type="job"
+      />
     </div>
   );
 }
