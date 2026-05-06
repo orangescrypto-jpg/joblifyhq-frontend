@@ -8,7 +8,7 @@ import LoadingSkeleton from '../components/common/LoadingSkeleton';
 import { getJobs } from '../services/firebase/jobs';
 import { getScholarships } from '../services/firebase/scholarships';
 import { getBlogs } from '../services/firebase/blog';
-import { FiGlobe, FiZap, FiAlertCircle } from 'react-icons/fi';
+import { FiGlobe, FiZap } from 'react-icons/fi';
 
 const sortFeaturedFirst = (arr) =>
   [...arr].sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
@@ -30,7 +30,6 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch data from all sources
         const [jobsResult, scholarshipsData, blogsData, remoteResult] = await Promise.all([
           getJobs({}, 20),
           getScholarships(),
@@ -38,26 +37,16 @@ export default function Home() {
           getJobs({ isRemote: true }, 4)
         ]);
 
-        // Handle response formats (sometimes API returns { jobs: [] }, sometimes just [])
         const jobsArray = Array.isArray(jobsResult) ? jobsResult : (jobsResult?.jobs || []);
         const remoteArray = Array.isArray(remoteResult) ? remoteResult : (remoteResult?.jobs || []);
 
-        // Debugging: Check if you actually have data in your console (F12)
-        console.log('🔍 Data Check:', {
-          jobs: jobsArray.length,
-          remote: remoteArray.length,
-          scholarships: scholarshipsData?.length || 0,
-          blogs: blogsData?.length || 0
-        });
-
-        // Set State
-        setJobs(sortFeaturedFirst(jobsArray).slice(0, 6)); // Show top 6 featured jobs
+        setJobs(sortFeaturedFirst(jobsArray).slice(0, 6));
         setActiveJobs(jobsArray.filter(j => isActivelyHiring(j.createdAt)).slice(0, 4));
         setRemoteJobs(remoteArray.slice(0, 4));
-        setScholarships(sortFeaturedFirst(scholarshipsData || []).slice(0, 6)); // Show top 6 scholarships
-        setBlogs((blogsData || []).slice(0, 10)); // Show top 10 blogs
+        setScholarships(sortFeaturedFirst(scholarshipsData || []).slice(0, 6));
+        setBlogs((blogsData || []).slice(0, 10));
       } catch (error) {
-        console.error('Error fetching home ', error);
+        console.error('Error fetching home data:', error);
       } finally {
         setLoading(false);
       }
@@ -69,21 +58,13 @@ export default function Home() {
     <div className="mb-12">
       <div className="flex justify-between items-end mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
-        {children && children.length > 0 && (
-          <Link to={link} className="text-primary-600 font-medium hover:underline">{linkLabel}</Link>
-        )}
+        <Link to={link} className="text-primary-600 font-medium hover:underline">{linkLabel}</Link>
       </div>
       {loading ? (
         <LoadingSkeleton count={3} />
-      ) : children && children.length > 0 ? (
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {children}
-        </div>
-      ) : (
-        <div className="text-center py-10 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-          <FiAlertCircle className="mx-auto text-3xl text-gray-400 mb-2" />
-          <p className="text-gray-500 dark:text-gray-400 font-medium">No {title.toLowerCase()} available yet.</p>
-          <p className="text-gray-400 text-sm">Check back later for updates!</p>
         </div>
       )}
     </div>
@@ -93,12 +74,12 @@ export default function Home() {
     <>
       <Hero />
 
-      {/* 1. Featured Jobs */}
+      {/* Featured Jobs */}
       <Section title="Featured Jobs" link="/jobs">
         {jobs.map(j => <JobCard key={j.id} job={j} />)}
       </Section>
 
-      {/* 2. Actively Hiring */}
+      {/* Actively Hiring */}
       {(loading || activeJobs.length > 0) && (
         <div className="mb-12">
           <div className="flex justify-between items-end mb-6">
@@ -117,7 +98,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 3. Global Remote Section */}
+      {/* Global Remote Section */}
       <div className="mb-12">
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 md:p-8 mb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -142,18 +123,16 @@ export default function Home() {
             {remoteJobs.map(j => <JobCard key={j.id} job={j} />)}
           </div>
         ) : (
-          <div className="text-center py-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-            <p className="text-blue-600 dark:text-blue-400 text-sm">🌍 Global Remote jobs coming soon!</p>
-          </div>
+          <p className="text-gray-400 text-sm text-center py-4">Remote jobs coming soon — employers can mark roles as Global Remote when posting.</p>
         )}
       </div>
 
-      {/* 4. Scholarships */}
+      {/* Scholarships */}
       <Section title="Latest Scholarships" link="/scholarships">
         {scholarships.map(s => <ScholarshipCard key={s.id} scholarship={s} />)}
       </Section>
 
-      {/* 5. Student Hub CTA */}
+      {/* Student Hub CTA */}
       <div className="mb-12">
         <div className="bg-gradient-to-br from-primary-600 to-purple-600 rounded-2xl p-8 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
@@ -167,11 +146,6 @@ export default function Home() {
           </Link>
         </div>
       </div>
-
-      {/* 6. Blog Section (Added This!) */}
-      <Section title="Career Insights & Tips" link="/blog" linkLabel="Read All Articles →">
-        {blogs.map(b => <BlogCard key={b.id} post={b} />)}
-      </Section>
     </>
   );
 }
