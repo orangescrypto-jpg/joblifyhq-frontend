@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FiCheck, FiBriefcase, FiAward, FiLink, FiMail } from 'react-icons/fi';
+import { FiCheck, FiBriefcase, FiAward, FiLink, FiMail, FiGlobe } from 'react-icons/fi';
 import { createJob } from '../../services/firebase/jobs';
 import { createScholarship } from '../../services/firebase/scholarships';
 
@@ -48,7 +48,7 @@ export default function EmployerPostJob() {
     title: '', company: '', org: '', city: '', country: '',
     type: '', funding: 'Full Funding', category: '',
     salary: '', benefits: '', deadline: '', description: '',
-    applyLink: '', applyEmail: ''   // ← added applyEmail
+    applyLink: '', applyEmail: '', isRemote: false  // ← Added isRemote
   });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -70,7 +70,8 @@ export default function EmployerPostJob() {
           deadline: form.deadline,
           description: form.description,
           applyLink: form.applyLink || '',
-          applyEmail: form.applyEmail || '',   // ← saved to Firestore
+          applyEmail: form.applyEmail || '',
+          isRemote: form.isRemote || false,  // ← Saved to Firestore
           postedByName: user?.company || user?.name
         }, user.uid);
       } else {
@@ -85,7 +86,7 @@ export default function EmployerPostJob() {
           deadline: form.deadline,
           description: form.description,
           applyLink: form.applyLink || '',
-          applyEmail: form.applyEmail || '',   // ← saved to Firestore
+          applyEmail: form.applyEmail || '',
           postedByName: user?.company || user?.name
         }, user.uid);
       }
@@ -96,7 +97,7 @@ export default function EmployerPostJob() {
           title: '', company: '', org: '', city: '', country: '',
           type: '', funding: 'Full Funding', category: '',
           salary: '', benefits: '', deadline: '', description: '',
-          applyLink: '', applyEmail: ''
+          applyLink: '', applyEmail: '', isRemote: false
         });
         navigate('/employer/listings');
       }, 2000);
@@ -254,6 +255,26 @@ export default function EmployerPostJob() {
               placeholder={isJob ? 'e.g. ₦300k–₦500k / month' : 'e.g. Tuition + $15k stipend + flights'} />
           </div>
 
+          {/* Global Remote Toggle — jobs only */}
+          {isJob && (
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 cursor-pointer hover:border-blue-400 transition">
+                <input
+                  type="checkbox"
+                  checked={form.isRemote || false}
+                  onChange={e => set('isRemote', e.target.checked)}
+                  className="accent-blue-600 w-4 h-4"
+                />
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    <FiGlobe className="text-blue-600" /> This is a Global Remote role
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Open to African talent anywhere — will appear in the Global Remote section</span>
+                </div>
+              </label>
+            </div>
+          )}
+
           {/* Deadline */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Application Deadline</label>
@@ -272,7 +293,7 @@ export default function EmployerPostJob() {
             <p className="text-xs text-gray-400 mt-1">Candidates will see an "Apply on Website" button linking here</p>
           </div>
 
-          {/* Apply Email — NEW */}
+          {/* Apply Email */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               <span className="flex items-center gap-1"><FiMail size={14} /> Apply Email <span className="text-gray-400 font-normal">(optional)</span></span>
