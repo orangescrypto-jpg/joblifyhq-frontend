@@ -11,6 +11,7 @@ import Scholarships from '../pages/Scholarships';
 import ScholarshipDetails from '../pages/ScholarshipDetails';
 import Blog from '../pages/Blog';
 import BlogDetails from '../pages/BlogDetails';
+import Students from '../pages/Students';
 import PrivacyPolicy from '../pages/PrivacyPolicy';
 import TermsConditions from '../pages/TermsConditions';
 import Contact from '../pages/Contact';
@@ -50,7 +51,6 @@ const ProtectedRoute = ({ children, roleRequired }) => {
   return children;
 };
 
-// Wraps a page with MainLayout directly — avoids nested route Outlet issues
 const MainPage = ({ children }) => <MainLayout>{children}</MainLayout>;
 
 export default function AppRoutes() {
@@ -65,6 +65,7 @@ export default function AppRoutes() {
         <Route path="scholarships/:id" element={<ScholarshipDetails />} />
         <Route path="blog" element={<Blog />} />
         <Route path="blog/:id" element={<BlogDetails />} />
+        <Route path="students" element={<Students />} />
         <Route path="privacy-policy" element={<PrivacyPolicy />} />
         <Route path="terms" element={<TermsConditions />} />
         <Route path="contact" element={<Contact />} />
@@ -87,7 +88,7 @@ export default function AppRoutes() {
         <Route index element={<Dashboard />} />
       </Route>
 
-      {/* 🔒 Admin - FIXED: Admin rendered directly inside MainLayout, no double-wrap */}
+      {/* 🔒 Admin */}
       <Route
         path="admin"
         element={
