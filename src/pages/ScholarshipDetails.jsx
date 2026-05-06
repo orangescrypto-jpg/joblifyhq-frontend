@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiGlobe, FiCalendar, FiAward, FiBookmark, FiExternalLink, FiSend } from 'react-icons/fi';
-import { getScholarshipById } from '../services/firebase/scholarships';
+import { FiGlobe, FiCalendar, FiAward, FiBookmark, FiExternalLink, FiSend, FiMail } from 'react-icons/fi';
+import { getScholarshipById, getScholarships } from '../services/firebase/scholarships';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../context/DashboardContext';
 import ApplyModal from '../components/common/ApplyModal';
 import ShareButtons from '../components/blog/ShareButtons';
+import ScholarshipCard from '../components/scholarship/ScholarshipCard';
 
 function RichDescription({ text }) {
   if (!text) return null;
@@ -45,15 +46,29 @@ export default function ScholarshipDetails() {
   const [scholarship, setScholarship] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [relatedScholarships, setRelatedScholarships] = useState([]);
 
   useEffect(() => {
+    setLoading(true);
+    setRelatedScholarships([]);
     getScholarshipById(id).then(data => {
       setScholarship(data || null);
       setLoading(false);
+
+      // Fetch related by same category, exclude current
+      if (data?.category) {
+        getScholarships({ category: data.category }).then(all => {
+          const filtered = all.filter(s => s.id !== id).slice(0, 2);
+          setRelatedScholarships(filtered);
+        }).catch(() => {});
+      }
     }).catch(() => setLoading(false));
   }, [id]);
 
   const isSaved = savedScholarships.some(s => s.scholarshipId === id || s.id === id);
+
+  const hasWebsite = !!scholarship?.applyLink;
+  const hasEmail = !!scholarship?.applyEmail;
 
   if (loading) return (
     <div className="animate-pulse space-y-4 p-10 max-w-4xl mx-auto">
@@ -71,7 +86,9 @@ export default function ScholarshipDetails() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-8">
+
+      {/* Main Scholarship Card */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         <div className="p-6 md:p-8">
 
@@ -116,27 +133,42 @@ export default function ScholarshipDetails() {
           </div>
 
           {/* Apply Buttons */}
-          <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => setApplyModalOpen(true)}
-              className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition text-lg"
+              className="flex-1 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition text-lg"
             >
               <FiSend size={18} /> Apply on JoblifyHQ
             </button>
 
-            {scholarship.applyLink && (
+            {hasWebsite && (
               <a
                 href={scholarship.applyLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 font-semibold py-3 px-6 rounded-xl transition"
+                className="flex-1 flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 font-semibold py-3 px-6 rounded-xl transition"
               >
-                <FiExternalLink size={16} /> Apply on Official Website
+                <FiExternalLink size={16} /> Apply on Website
+              </a>
+            )}
+
+            {hasEmail && (
+              <a
+                href={`mailto:${scholarship.applyEmail}?subject=Application for ${encodeURIComponent(scholarship.title)}`}
+                className="flex-1 flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 font-semibold py-3 px-6 rounded-xl transition"
+              >
+                <FiMail size={16} /> Apply via Email
               </a>
             )}
           </div>
 
-          {/* Share Section */}
+          {hasWebsite && hasEmail && (
+            <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-2">
+              You can apply through the website or send your application directly by email.
+            </p>
+          )}
+
+          {/* Share */}
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
             <ShareButtons
               title={`${scholarship.title} — ${scholarship.org} | JoblifyHQ`}
@@ -146,6 +178,28 @@ export default function ScholarshipDetails() {
 
         </div>
       </div>
+
+      {/* Related Scholarships Section */}
+      {relatedScholarships.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              Related Scholarships in <span className="text-primary-600">{scholarship.category}</span>
+            </h2>
+            <button
+              onClick={() => navigate('/scholarships')}
+              className="text-sm text-primary-600 hover:underline font-medium"
+            >
+              View all →
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {relatedScholarships.map(related => (
+              <ScholarshipCard key={related.id} scholarship={related} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <ApplyModal
         isOpen={applyModalOpen}
