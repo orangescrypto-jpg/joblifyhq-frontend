@@ -3,13 +3,17 @@ import { useAuth } from '../context/AuthContext';
 import { FiBriefcase, FiList, FiUsers, FiLogOut, FiPlus } from 'react-icons/fi';
 
 export default function EmployerLayout() {
-  const { user, logout } = useNavigate();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
   };
 
   const navItems = [
@@ -46,11 +50,11 @@ export default function EmployerLayout() {
                 const isActive = location.pathname === item.path;
                 return (
                   <li key={item.path}>
-                    <Link 
+                    <Link
                       to={item.path}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
-                        isActive 
-                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' 
+                        isActive
+                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
                           : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
                     >
@@ -60,7 +64,7 @@ export default function EmployerLayout() {
                 );
               })}
             </ul>
-            
+
             {/* Employer Stats */}
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-3">Quick Stats</p>
