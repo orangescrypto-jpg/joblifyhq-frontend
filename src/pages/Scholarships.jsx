@@ -6,10 +6,18 @@ import ScholarshipCard from '../components/scholarship/ScholarshipCard';
 import LoadingSkeleton from '../components/common/LoadingSkeleton';
 import EmptyState from '../components/common/EmptyState';
 
-const FUNDING_TYPES = ['Fully Funded', 'Partial', 'Tuition Only', 'Stipend Only'];
+const FUNDING_TYPES = ['Full Funding', 'Partial Funding', 'Grant'];
+const AFRICAN_COUNTRIES = [
+  'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Uganda', 'Tanzania',
+  'Ethiopia', 'Rwanda', 'Senegal', "Côte d'Ivoire", 'Cameroon',
+  'Zimbabwe', 'Zambia', 'Botswana', 'Namibia', 'Egypt', 'Morocco', 'Tunisia'
+];
+const HOST_COUNTRIES = [
+  'UK', 'USA', 'Canada', 'Australia', 'Germany', 'France', 'China',
+  'Netherlands', 'Sweden', 'Norway', 'Japan', 'South Korea', 'Worldwide'
+];
 
 export default function Scholarships() {
-  const navigate = useNavigate();
   const [scholarships, setScholarships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -25,7 +33,8 @@ export default function Scholarships() {
       if (search) filters.search = search;
 
       const result = await getScholarships(filters);
-      setScholarships(result);
+      const sorted = [...(result || [])].sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
+      setScholarships(sorted);
     } catch (err) {
       console.error('Error fetching scholarships:', err);
     } finally {
@@ -44,12 +53,17 @@ export default function Scholarships() {
     fetchScholarships();
   };
 
+  const clearFilters = () => {
+    setFundingFilter('');
+    setCountryFilter('');
+    setSearch('');
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Scholarships</h1>
-        <p className="text-gray-500 dark:text-gray-400">Discover funding opportunities for your education</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Scholarships for Africans</h1>
+        <p className="text-gray-500 dark:text-gray-400">Discover fully funded and partial scholarships open to African students worldwide</p>
       </div>
 
       {/* Search & Filter Bar */}
@@ -87,21 +101,33 @@ export default function Scholarships() {
               <option value="">All Funding Types</option>
               {FUNDING_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
-            <input
-              type="text"
+            <select
               value={countryFilter}
               onChange={e => setCountryFilter(e.target.value)}
-              placeholder="Filter by country..."
               className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+            >
+              <option value="">🌍 All Locations</option>
+              <optgroup label="Study in Africa">
+                {AFRICAN_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </optgroup>
+              <optgroup label="Study Abroad">
+                {HOST_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </optgroup>
+            </select>
             {(fundingFilter || countryFilter || search) && (
-              <button
-                onClick={() => { setFundingFilter(''); setCountryFilter(''); setSearch(''); }}
-                className="px-3 py-2 text-sm text-red-500 hover:text-red-600 font-medium"
-              >
+              <button onClick={clearFilters} className="px-3 py-2 text-sm text-red-500 hover:text-red-600 font-medium">
                 Clear filters
               </button>
             )}
+          </div>
+        )}
+
+        {countryFilter && (
+          <div className="flex gap-2 mt-3">
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-full text-xs font-medium">
+              🌍 {countryFilter}
+              <button onClick={() => setCountryFilter('')} className="ml-1 hover:text-red-500">✕</button>
+            </span>
           </div>
         )}
       </div>
@@ -110,17 +136,14 @@ export default function Scholarships() {
       {loading ? (
         <LoadingSkeleton count={6} />
       ) : scholarships.length === 0 ? (
-        <EmptyState
-          title="No scholarships found"
-          message="Try adjusting your search or filters."
-        />
+        <EmptyState title="No scholarships found" message="Try adjusting your search or filters." />
       ) : (
         <>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{scholarships.length} scholarship{scholarships.length !== 1 ? 's' : ''} found</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {scholarships.length} scholarship{scholarships.length !== 1 ? 's' : ''} found{countryFilter ? ` in ${countryFilter}` : ''}
+          </p>
           <div className="space-y-4">
-            {scholarships.map(s => (
-              <ScholarshipCard key={s.id} scholarship={s} onClick={() => navigate(`/scholarships/${s.id}`)} />
-            ))}
+            {scholarships.map(s => <ScholarshipCard key={s.id} scholarship={s} />)}
           </div>
         </>
       )}
