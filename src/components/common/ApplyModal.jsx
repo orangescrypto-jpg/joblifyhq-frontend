@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiX, FiSend, FiUser, FiMail, FiFileText, FiCheck } from 'react-icons/fi';
+import { FiX, FiSend, FiUser, FiFileText, FiCheck, FiUpload, FiPaperclip } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../../firebase/config';
 
 export default function ApplyModal({ isOpen, onClose, opportunity, type = 'job' }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [form, setForm] = useState({ coverNote: '', phone: '' });
+  const [cvFile, setCvFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
@@ -54,6 +58,41 @@ export default function ApplyModal({ isOpen, onClose, opportunity, type = 'job' 
     );
   }
 
+  const handleCvChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const allowed = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowed.includes(file.type)) {
+      setError('Only PDF or Word documents are allowed for CV.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('CV file must be under 5MB.');
+      return;
+    }
+    setError('');
+    setCvFile(file);
+  };
+
+  const uploadCV = (file) => {
+    return new Promise((resolve, reject) => {
+      const storageRef = ref(storage, `cvs/${user.uid}/${Date.now()}_${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          setUploadProgress(progress);
+        },
+        (err) => reject(err),
+        async () => {
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(url);
+        }
+      );
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -73,12 +112,22 @@ export default function ApplyModal({ isOpen, onClose, opportunity, type = 'job' 
         return;
       }
 
+      // Upload CV if provided
+      let cvUrl = '';
+      let cvFileName = '';
+      if (cvFile) {
+        cvUrl = await uploadCV(cvFile);
+        cvFileName = cvFile.name;
+      }
+
       await addDoc(collection(db, 'applications'), {
         userId: user.uid,
         userName: user.name,
         userEmail: user.email,
         phone: form.phone || '',
         coverNote: form.coverNote || '',
+        cvUrl,
+        cvFileName,
         opportunityId: opportunity.id,
         opportunityType: type,
         title: opportunity.title,
@@ -94,6 +143,7 @@ export default function ApplyModal({ isOpen, onClose, opportunity, type = 'job' 
       setError('Failed to submit application. Please try again.');
     } finally {
       setSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -161,6 +211,57 @@ export default function ApplyModal({ isOpen, onClose, opportunity, type = 'job' 
             />
           </div>
 
+          {/* CV Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Upload CV / Resume <span className="text-gray-400 font-normal">(optional but recommended)</span>
+            </label>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg p-4 cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition text-center"
+            >
+              {cvFile ? (
+                <div className="flex items-center justify-center gap-2 text-primary-600 dark:text-primary-400">
+                  <FiPaperclip size={16} />
+                  <span className="text-sm font-medium truncate max-w-xs">{cvFile.name}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setCvFile(null); fileInputRef.current.value = ''; }}
+                    className="ml-1 text-red-400 hover:text-red-600"
+                  >
+                    <FiX size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-gray-400">
+                  <FiUpload size={20} />
+                  <span className="text-xs">Click to upload PDF or Word document (max 5MB)</span>
+                </div>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={handleCvChange}
+              className="hidden"
+            />
+            {submitting && cvFile && uploadProgress > 0 && uploadProgress < 100 && (
+              <div className="mt-2">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>Uploading CV...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                  <div
+                    className="bg-primary-600 h-1.5 rounded-full transition-all"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Cover Note */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -195,7 +296,7 @@ export default function ApplyModal({ isOpen, onClose, opportunity, type = 'job' 
               {submitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Submitting...
+                  {cvFile && uploadProgress < 100 ? `Uploading ${uploadProgress}%...` : 'Submitting...'}
                 </>
               ) : (
                 <><FiSend size={16} /> Submit Application</>
