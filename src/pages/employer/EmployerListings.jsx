@@ -315,7 +315,7 @@ export default function EmployerListings() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Price</span>
-                  <span className="text-xl font-bold text-primary-600">$79</span>
+                  <span className="text-xl font-bold text-primary-600">$5</span>
                 </div>
               </div>
             )}
@@ -323,7 +323,7 @@ export default function EmployerListings() {
               <button onClick={() => setPromoteModal({ open: false, listing: null })} className="btn-secondary">Cancel</button>
               <button onClick={confirmPromote} disabled={actionLoading}
                 className={`px-4 py-2 rounded-lg font-medium text-white transition disabled:opacity-50 ${promoteModal.listing?.isFeatured ? 'bg-gray-500 hover:bg-gray-600' : 'bg-amber-500 hover:bg-amber-600'}`}>
-                {actionLoading ? 'Updating...' : promoteModal.listing?.isFeatured ? 'Remove Featured' : 'Boost for $79'}
+                {actionLoading ? 'Updating...' : promoteModal.listing?.isFeatured ? 'Remove Featured' : 'Boost for $5'}
               </button>
             </div>
           </div>
