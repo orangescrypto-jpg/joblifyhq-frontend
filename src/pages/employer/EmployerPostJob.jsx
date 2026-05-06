@@ -30,7 +30,13 @@ const COUNTRY_FLAGS = {
 
 const CATEGORIES = [
   'Engineering', 'Design', 'Marketing', 'Sales', 'Finance',
-  'Education', 'Healthcare', 'STEM', 'Agriculture', 'Law', 'Media', 'Tech'
+  'Education', 'Healthcare', 'STEM', 'Agriculture', 'Law', 'Media', 'Tech',
+  'Business', 'Accounting', 'Human Resources', 'Logistics & Supply Chain',
+  'Hospitality & Tourism', 'Real Estate', 'Construction', 'Energy & Oil',
+  'NGO & Non-Profit', 'Government & Public Sector', 'Research & Development',
+  'Social Work', 'Journalism', 'Sports & Fitness', 'Arts & Entertainment',
+  'Information Technology', 'Cybersecurity', 'Data Science', 'Aviation',
+  'Banking', 'Insurance', 'Telecommunications', 'Other'
 ];
 
 export default function EmployerPostJob() {
@@ -277,7 +283,7 @@ export default function EmployerPostJob() {
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Get 3x more visibility — appear at the top of results and on the homepage across Africa.</p>
               <label className="flex items-center gap-2 mt-3 cursor-pointer">
                 <input type="checkbox" name="boost" className="text-amber-500 rounded focus:ring-amber-500" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Yes, boost for $79 (14 days)</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Yes, boost for $5 (14 days)</span>
               </label>
             </div>
           </div>
