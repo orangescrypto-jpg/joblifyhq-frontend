@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiSearch, FiMapPin, FiFilter } from 'react-icons/fi';
 import { getJobs } from '../services/firebase/jobs';
 import JobCard from '../components/job/JobCard';
@@ -7,14 +7,20 @@ import LoadingSkeleton from '../components/common/LoadingSkeleton';
 import EmptyState from '../components/common/EmptyState';
 
 const JOB_TYPES = ['Full-time', 'Part-time', 'Contract', 'Remote', 'Internship'];
+const AFRICAN_COUNTRIES = [
+  'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Uganda', 'Tanzania',
+  'Ethiopia', 'Rwanda', 'Senegal', "Côte d'Ivoire", 'Cameroon',
+  'Zimbabwe', 'Zambia', 'Botswana', 'Namibia', 'Egypt', 'Morocco', 'Tunisia'
+];
 
 export default function Jobs() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('q') || '');
   const [typeFilter, setTypeFilter] = useState('');
-  const [locationFilter, setLocationFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState(searchParams.get('country') || '');
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -24,14 +30,16 @@ export default function Jobs() {
     try {
       const filters = {};
       if (typeFilter) filters.type = typeFilter;
-      if (locationFilter) filters.location = locationFilter;
+      if (countryFilter) filters.country = countryFilter;
       if (search) filters.search = search;
 
       const result = await getJobs(filters, 20, reset ? null : lastDoc);
+      const sorted = [...(result.jobs || [])].sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0));
+
       if (reset) {
-        setJobs(result.jobs);
+        setJobs(sorted);
       } else {
-        setJobs(prev => [...prev, ...result.jobs]);
+        setJobs(prev => [...prev, ...sorted]);
       }
       setLastDoc(result.lastDoc);
       setHasMore(result.hasMore);
@@ -46,7 +54,7 @@ export default function Jobs() {
   useEffect(() => {
     setLoading(true);
     fetchJobs(true);
-  }, [typeFilter, locationFilter]);
+  }, [typeFilter, countryFilter]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -59,12 +67,17 @@ export default function Jobs() {
     fetchJobs(false);
   };
 
+  const clearFilters = () => {
+    setTypeFilter('');
+    setCountryFilter('');
+    setSearch('');
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Browse Jobs</h1>
-        <p className="text-gray-500 dark:text-gray-400">Find your next career opportunity</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Browse Jobs Across Africa</h1>
+        <p className="text-gray-500 dark:text-gray-400">Find opportunities in Nigeria, Ghana, Kenya, South Africa and more</p>
       </div>
 
       {/* Search & Filter Bar */}
@@ -95,6 +108,14 @@ export default function Jobs() {
         {showFilters && (
           <div className="flex flex-wrap gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
             <select
+              value={countryFilter}
+              onChange={e => setCountryFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">🌍 All Countries</option>
+              {AFRICAN_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value)}
               className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -106,20 +127,27 @@ export default function Jobs() {
               <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
               <input
                 type="text"
-                value={locationFilter}
-                onChange={e => setLocationFilter(e.target.value)}
-                placeholder="Filter by location..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="City or region..."
                 className="pl-8 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
-            {(typeFilter || locationFilter || search) && (
-              <button
-                onClick={() => { setTypeFilter(''); setLocationFilter(''); setSearch(''); }}
-                className="px-3 py-2 text-sm text-red-500 hover:text-red-600 font-medium"
-              >
+            {(typeFilter || countryFilter || search) && (
+              <button onClick={clearFilters} className="px-3 py-2 text-sm text-red-500 hover:text-red-600 font-medium">
                 Clear filters
               </button>
             )}
+          </div>
+        )}
+
+        {/* Active country filter pill */}
+        {countryFilter && (
+          <div className="flex gap-2 mt-3">
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-full text-xs font-medium">
+              🌍 {countryFilter}
+              <button onClick={() => setCountryFilter('')} className="ml-1 hover:text-red-500">✕</button>
+            </span>
           </div>
         )}
       </div>
@@ -128,25 +156,16 @@ export default function Jobs() {
       {loading ? (
         <LoadingSkeleton count={6} />
       ) : jobs.length === 0 ? (
-        <EmptyState
-          title="No jobs found"
-          message="Try adjusting your search or filters."
-        />
+        <EmptyState title="No jobs found" message="Try adjusting your search or filters." />
       ) : (
         <>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{jobs.length} job{jobs.length !== 1 ? 's' : ''} found</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{jobs.length} job{jobs.length !== 1 ? 's' : ''} found{countryFilter ? ` in ${countryFilter}` : ' across Africa'}</p>
           <div className="space-y-4">
-            {jobs.map(job => (
-              <JobCard key={job.id} job={job} onClick={() => navigate(`/jobs/${job.id}`)} />
-            ))}
+            {jobs.map(job => <JobCard key={job.id} job={job} />)}
           </div>
           {hasMore && (
             <div className="text-center mt-8">
-              <button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="btn-secondary px-8 py-3"
-              >
+              <button onClick={handleLoadMore} disabled={loadingMore} className="btn-secondary px-8 py-3">
                 {loadingMore ? 'Loading...' : 'Load More Jobs'}
               </button>
             </div>
