@@ -22,33 +22,38 @@ export default function EmployerDashboard() {
 
     const fetchDashboardData = async () => {
       try {
-        // Fetch jobs and scholarships
         const jobs = await getEmployerJobs(user.uid);
         const scholarships = await getEmployerScholarships(user.uid);
-        
-        // Calculate stats
-        const totalViews = jobs.reduce((sum, job) => sum + (job.views || 0), 0) + 
+
+        const totalViews = jobs.reduce((sum, job) => sum + (job.views || 0), 0) +
                           scholarships.reduce((sum, sch) => sum + (sch.views || 0), 0);
-        const totalApplications = jobs.reduce((sum, job) => sum + (job.applications || 0), 0) + 
+        const totalApplications = jobs.reduce((sum, job) => sum + (job.applications || 0), 0) +
                                  scholarships.reduce((sum, sch) => sum + (sch.applications || 0), 0);
-        
+
         setStats({
           totalViews,
           totalApplications,
           activeListings: jobs.length + scholarships.length
         });
 
-        // Fetch recent applications
+        // Only query applications if there are listings
+        const allIds = [...jobs.map(j => j.id), ...scholarships.map(s => s.id)];
+        if (allIds.length === 0) {
+          setRecentApps([]);
+          return;
+        }
+
+        // Firestore 'in' query supports max 10 items
         const appsQuery = query(
           collection(db, 'applications'),
-          where('opportunityId', 'in', [...jobs.map(j => j.id), ...scholarships.map(s => s.id)])
+          where('opportunityId', 'in', allIds.slice(0, 10))
         );
         const appsSnap = await getDocs(appsQuery);
         const appsData = appsSnap.docs.slice(0, 3).map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
-        
+
         setRecentApps(appsData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -149,7 +154,7 @@ export default function EmployerDashboard() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold">🚀 Boost Your Listing</h3>
-            <p className="text-primary-100 text-sm mt-1">Get 3x more applications by featuring your job on the homepage.</p>
+            <p className="text-primary-100 text-sm mt-1">Get 3x more applications by featuring your job on the homepage for just $5.</p>
           </div>
           <Link to="/employer/listings" className="bg-white text-primary-600 px-5 py-2.5 rounded-lg font-medium hover:bg-gray-100 transition w-fit">
             Promote Now
