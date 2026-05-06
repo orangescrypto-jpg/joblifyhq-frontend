@@ -14,6 +14,7 @@ export const createJob = async (jobData, userId) => {
     applications: 0,
     views: 0,
     isFeatured: false,
+    isRemote: jobData.isRemote || false,
     status: 'active'
   });
   return docRef.id;
@@ -30,6 +31,9 @@ export const getJobs = async (filters = {}, pageLimit = 20, lastDoc = null) => {
   }
   if (filters.type) {
     q = query(q, where('type', '==', filters.type));
+  }
+  if (filters.isRemote) {
+    q = query(q, where('isRemote', '==', true));
   }
   if (filters.search) {
     q = query(q, where('title', '>=', filters.search), where('title', '<=', filters.search + '\uf8ff'));
@@ -56,7 +60,6 @@ export const getJobById = async (id) => {
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    // Increment view count silently — don't block on failure (guests can't write)
     updateDoc(docRef, {
       views: (docSnap.data().views || 0) + 1,
       updatedAt: Timestamp.now()
@@ -79,15 +82,9 @@ export const deleteJob = async (id, userId) => {
 };
 
 export const getEmployerJobs = async (userId) => {
-  // Uses only 'where' — no composite index needed in Firestore
-  // Sorting is done in JS after fetching
-  const q = query(
-    collection(db, 'jobs'),
-    where('postedBy', '==', userId)
-  );
+  const q = query(collection(db, 'jobs'), where('postedBy', '==', userId));
   const snapshot = await getDocs(q);
   const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  // Sort newest first in JavaScript
   return jobs.sort((a, b) => {
     const aTime = a.createdAt?.seconds || 0;
     const bTime = b.createdAt?.seconds || 0;
@@ -98,13 +95,29 @@ export const getEmployerJobs = async (userId) => {
 export const boostJob = async (id, userId, durationDays = 14) => {
   const jobRef = doc(db, 'jobs', id);
   const jobSnap = await getDoc(jobRef);
-
   if (!jobSnap.exists()) throw new Error('Job not found');
   if (jobSnap.data().postedBy !== userId) throw new Error('Unauthorized');
-
   await updateDoc(jobRef, {
     isFeatured: true,
     featuredUntil: Timestamp.fromMillis(Date.now() + durationDays * 24 * 60 * 60 * 1000),
     updatedAt: Timestamp.now()
   });
+};
+
+// Referrals
+export const createReferral = async (jobId, referrerId, friendEmail) => {
+  const docRef = await addDoc(collection(db, 'referrals'), {
+    jobId,
+    referrerId,
+    friendEmail,
+    createdAt: Timestamp.now(),
+    status: 'pending'
+  });
+  return docRef.id;
+};
+
+export const getReferralCount = async (userId) => {
+  const q = query(collection(db, 'referrals'), where('referrerId', '==', userId));
+  const snap = await getDocs(q);
+  return snap.size;
 };
