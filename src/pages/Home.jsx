@@ -31,20 +31,21 @@ export default function Home() {
     const fetchData = async () => {
       try {
         const [jobsResult, scholarshipsData, blogsData, remoteResult] = await Promise.all([
-          getJobs({}, 20),
+          getJobs({}, 50), // Fetch more to ensure we have enough
           getScholarships(),
           getBlogs(),
-          getJobs({ isRemote: true }, 4)
+          getJobs({ isRemote: true }, 10)
         ]);
 
         const jobsArray = Array.isArray(jobsResult) ? jobsResult : (jobsResult?.jobs || []);
         const remoteArray = Array.isArray(remoteResult) ? remoteResult : (remoteResult?.jobs || []);
 
-        setJobs(sortFeaturedFirst(jobsArray).slice(0, 6));
+        // ✅ Ensure MINIMUMS: 5 jobs, 5 scholarships, 10 blogs (or all if fewer exist)
+        setJobs(sortFeaturedFirst(jobsArray).slice(0, Math.max(5, Math.min(6, jobsArray.length))));
         setActiveJobs(jobsArray.filter(j => isActivelyHiring(j.createdAt)).slice(0, 4));
-        setRemoteJobs(remoteArray.slice(0, 4));
-        setScholarships(sortFeaturedFirst(scholarshipsData || []).slice(0, 6));
-        setBlogs((blogsData || []).slice(0, 10));
+        setRemoteJobs(remoteArray.slice(0, Math.max(4, Math.min(4, remoteArray.length))));
+        setScholarships(sortFeaturedFirst(scholarshipsData || []).slice(0, Math.max(5, Math.min(6, scholarshipsData?.length || 0))));
+        setBlogs((blogsData || []).slice(0, Math.max(10, Math.min(10, blogsData?.length || 0))));
       } catch (error) {
         console.error('Error fetching home data:', error);
       } finally {
@@ -146,6 +147,11 @@ export default function Home() {
           </Link>
         </div>
       </div>
+
+      {/* Blog Section - Now shows at least 10 posts */}
+      <Section title="Career Insights & Tips" link="/blog" linkLabel="Read More Articles →">
+        {blogs.map(b => <BlogCard key={b.id} post={b} />)}
+      </Section>
     </>
   );
 }
