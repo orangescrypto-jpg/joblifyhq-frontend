@@ -4,11 +4,10 @@ import { FiMapPin, FiClock, FiDollarSign, FiBookmark, FiExternalLink, FiCalendar
 import { getJobById } from '../services/firebase/jobs';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../context/DashboardContext';
+import ShareButtons from '../components/blog/ShareButtons';
 
-// Renders description as proper paragraphs/bullets whether it's plain text or HTML
 function RichDescription({ text }) {
   if (!text) return null;
-  // If it contains HTML tags, render as HTML
   if (/<[a-z][\s\S]*>/i.test(text)) {
     return (
       <div
@@ -17,7 +16,6 @@ function RichDescription({ text }) {
       />
     );
   }
-  // Otherwise split by double newline into paragraphs, and handle bullet lines
   return (
     <div className="space-y-3 text-gray-700 dark:text-gray-300 leading-relaxed">
       {text.split('\n\n').map((block, i) => {
@@ -106,7 +104,6 @@ export default function JobDetails() {
             </div>
           </div>
 
-          {/* FIXED: renders paragraphs and bullets properly */}
           <div className="mb-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">About the Role</h3>
             <RichDescription text={job.description} />
@@ -122,6 +119,15 @@ export default function JobDetails() {
               Application link not available. Contact the company directly.
             </div>
           )}
+
+          {/* Share Section */}
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <ShareButtons
+              title={`${job.title} at ${job.company} — JoblifyHQ`}
+              url={typeof window !== 'undefined' ? window.location.href : ''}
+            />
+          </div>
+
         </div>
       </div>
     </div>
