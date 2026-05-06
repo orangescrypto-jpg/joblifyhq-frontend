@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiMapPin, FiClock, FiDollarSign, FiBookmark, FiExternalLink, FiCalendar, FiSend, FiMail } from 'react-icons/fi';
-import { getJobById } from '../services/firebase/jobs';
+import { getJobById, getJobs } from '../services/firebase/jobs';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../context/DashboardContext';
 import ShareButtons from '../components/blog/ShareButtons';
 import ApplyModal from '../components/common/ApplyModal';
+import JobCard from '../components/job/JobCard';
 
 function RichDescription({ text }) {
   if (!text) return null;
@@ -45,15 +46,29 @@ export default function JobDetails() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applyOpen, setApplyOpen] = useState(false);
+  const [relatedJobs, setRelatedJobs] = useState([]);
 
   useEffect(() => {
+    setLoading(true);
+    setRelatedJobs([]);
     getJobById(id).then(data => {
       setJob(data || null);
       setLoading(false);
+
+      // Fetch related jobs by same category, exclude current
+      if (data?.category) {
+        getJobs({ category: data.category }, 10).then(({ jobs }) => {
+          const filtered = jobs.filter(j => j.id !== id).slice(0, 2);
+          setRelatedJobs(filtered);
+        }).catch(() => {});
+      }
     }).catch(() => setLoading(false));
   }, [id]);
 
   const isSaved = savedJobs.some(j => j.jobId === id || j.id === id);
+
+  const hasWebsite = !!job?.applyLink;
+  const hasEmail = !!job?.applyEmail;
 
   if (loading) return (
     <div className="animate-pulse space-y-4 p-10 max-w-4xl mx-auto">
@@ -70,13 +85,10 @@ export default function JobDetails() {
     </div>
   );
 
-  // Determine what external apply options are available
-  const hasWebsite = !!job.applyLink;
-  const hasEmail = !!job.applyEmail;
-  const hasExternalOption = hasWebsite || hasEmail;
-
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-8">
+
+      {/* Main Job Card */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         <div className="p-6 md:p-8">
 
@@ -122,8 +134,6 @@ export default function JobDetails() {
 
           {/* Apply Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
-
-            {/* Primary: In-app apply — always shown */}
             <button
               onClick={() => setApplyOpen(true)}
               className="flex-1 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition text-lg"
@@ -131,7 +141,6 @@ export default function JobDetails() {
               <FiSend size={18} /> Apply on JoblifyHQ
             </button>
 
-            {/* Secondary: Apply via Website — only if applyLink exists */}
             {hasWebsite && (
               <a
                 href={job.applyLink}
@@ -143,7 +152,6 @@ export default function JobDetails() {
               </a>
             )}
 
-            {/* Secondary: Apply via Email — only if applyEmail exists */}
             {hasEmail && (
               <a
                 href={`mailto:${job.applyEmail}?subject=Application for ${encodeURIComponent(job.title)}`}
@@ -152,17 +160,15 @@ export default function JobDetails() {
                 <FiMail size={18} /> Apply via Email
               </a>
             )}
-
           </div>
 
-          {/* Helper hint if both website and email exist */}
           {hasWebsite && hasEmail && (
             <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-2">
               You can apply through the website or send your application directly by email.
             </p>
           )}
 
-          {/* Share Section */}
+          {/* Share */}
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
             <ShareButtons
               title={`${job.title} at ${job.company} — JoblifyHQ`}
@@ -173,7 +179,28 @@ export default function JobDetails() {
         </div>
       </div>
 
-      {/* In-app Apply Modal */}
+      {/* Related Jobs Section */}
+      {relatedJobs.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              Related Jobs in <span className="text-primary-600">{job.category}</span>
+            </h2>
+            <button
+              onClick={() => navigate('/jobs')}
+              className="text-sm text-primary-600 hover:underline font-medium"
+            >
+              View all →
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {relatedJobs.map(related => (
+              <JobCard key={related.id} job={related} />
+            ))}
+          </div>
+        </div>
+      )}
+
       <ApplyModal
         isOpen={applyOpen}
         onClose={() => setApplyOpen(false)}
