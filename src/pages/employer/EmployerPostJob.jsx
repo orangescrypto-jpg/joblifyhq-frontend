@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FiCheck, FiBriefcase, FiAward, FiLink } from 'react-icons/fi';
+import { FiCheck, FiBriefcase, FiAward, FiLink, FiMail } from 'react-icons/fi';
 import { createJob } from '../../services/firebase/jobs';
 import { createScholarship } from '../../services/firebase/scholarships';
 
@@ -47,7 +47,8 @@ export default function EmployerPostJob() {
   const [form, setForm] = useState({
     title: '', company: '', org: '', city: '', country: '',
     type: '', funding: 'Full Funding', category: '',
-    salary: '', benefits: '', deadline: '', description: '', applyLink: ''
+    salary: '', benefits: '', deadline: '', description: '',
+    applyLink: '', applyEmail: ''   // ← added applyEmail
   });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -69,6 +70,7 @@ export default function EmployerPostJob() {
           deadline: form.deadline,
           description: form.description,
           applyLink: form.applyLink || '',
+          applyEmail: form.applyEmail || '',   // ← saved to Firestore
           postedByName: user?.company || user?.name
         }, user.uid);
       } else {
@@ -83,13 +85,19 @@ export default function EmployerPostJob() {
           deadline: form.deadline,
           description: form.description,
           applyLink: form.applyLink || '',
+          applyEmail: form.applyEmail || '',   // ← saved to Firestore
           postedByName: user?.company || user?.name
         }, user.uid);
       }
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
-        setForm({ title: '', company: '', org: '', city: '', country: '', type: '', funding: 'Full Funding', category: '', salary: '', benefits: '', deadline: '', description: '', applyLink: '' });
+        setForm({
+          title: '', company: '', org: '', city: '', country: '',
+          type: '', funding: 'Full Funding', category: '',
+          salary: '', benefits: '', deadline: '', description: '',
+          applyLink: '', applyEmail: ''
+        });
         navigate('/employer/listings');
       }, 2000);
     } catch (error) {
@@ -253,7 +261,7 @@ export default function EmployerPostJob() {
               className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
           </div>
 
-          {/* Apply Link */}
+          {/* Apply Link (Website URL) */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               <span className="flex items-center gap-1"><FiLink size={14} /> Apply Link <span className="text-gray-400 font-normal">(optional)</span></span>
@@ -261,8 +269,20 @@ export default function EmployerPostJob() {
             <input type="url" value={form.applyLink} onChange={e => set('applyLink', e.target.value)}
               className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               placeholder="https://yourcompany.com/apply" />
-            <p className="text-xs text-gray-400 mt-1">Candidates will see an "Apply on Company Website" button linking here</p>
+            <p className="text-xs text-gray-400 mt-1">Candidates will see an "Apply on Website" button linking here</p>
           </div>
+
+          {/* Apply Email — NEW */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <span className="flex items-center gap-1"><FiMail size={14} /> Apply Email <span className="text-gray-400 font-normal">(optional)</span></span>
+            </label>
+            <input type="email" value={form.applyEmail} onChange={e => set('applyEmail', e.target.value)}
+              className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="e.g. hr@yourcompany.com or vc@wesleyuni.edu.ng" />
+            <p className="text-xs text-gray-400 mt-1">Candidates will see an "Apply via Email" button that opens their mail app</p>
+          </div>
+
         </div>
 
         {/* Description */}
