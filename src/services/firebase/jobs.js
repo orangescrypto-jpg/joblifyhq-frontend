@@ -20,45 +20,48 @@ export const createJob = async (jobData, userId) => {
   return docRef.id;
 };
 
+// Fetch ALL jobs from Firestore ordered by date — filtering is done in JS
+// This avoids needing composite Firestore indexes
 export const getJobs = async (filters = {}, pageLimit = 20, lastDoc = null) => {
-  let q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
+  const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
+  const snapshot = await getDocs(q);
+  let jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-  if (filters.category) {
-    q = query(q, where('category', '==', filters.category));
-  }
-  if (filters.location) {
-    q = query(q, where('location', '==', filters.location));
-  }
+  // Apply all filters in JavaScript
   if (filters.type) {
-    q = query(q, where('type', '==', filters.type));
+    jobs = jobs.filter(j => j.type === filters.type);
+  }
+  if (filters.country) {
+    jobs = jobs.filter(j =>
+      (j.country || '').toLowerCase() === filters.country.toLowerCase() ||
+      (j.location || '').toLowerCase().includes(filters.country.toLowerCase())
+    );
+  }
+  if (filters.category) {
+    jobs = jobs.filter(j => j.category === filters.category);
   }
   if (filters.isRemote) {
-    q = query(q, where('isRemote', '==', true));
+    jobs = jobs.filter(j => j.isRemote === true || j.type === 'Remote');
   }
   if (filters.search) {
-    q = query(q, where('title', '>=', filters.search), where('title', '<=', filters.search + '\uf8ff'));
+    const s = filters.search.toLowerCase();
+    jobs = jobs.filter(j =>
+      (j.title || '').toLowerCase().includes(s) ||
+      (j.company || '').toLowerCase().includes(s) ||
+      (j.description || '').toLowerCase().includes(s)
+    );
   }
-
-  if (lastDoc) {
-    q = query(q, startAfter(lastDoc), limit(pageLimit));
-  } else {
-    q = query(q, limit(pageLimit));
-  }
-
-  const snapshot = await getDocs(q);
-  const lastVisible = snapshot.docs[snapshot.docs.length - 1];
 
   return {
-    jobs: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-    lastDoc: lastVisible || null,
-    hasMore: snapshot.docs.length === pageLimit
+    jobs,
+    lastDoc: null,
+    hasMore: false
   };
 };
 
 export const getJobById = async (id) => {
   const docRef = doc(db, 'jobs', id);
   const docSnap = await getDoc(docRef);
-
   if (docSnap.exists()) {
     updateDoc(docRef, {
       views: (docSnap.data().views || 0) + 1,
@@ -71,10 +74,7 @@ export const getJobById = async (id) => {
 
 export const updateJob = async (id, updates, userId) => {
   const jobRef = doc(db, 'jobs', id);
-  await updateDoc(jobRef, {
-    ...updates,
-    updatedAt: Timestamp.now()
-  });
+  await updateDoc(jobRef, { ...updates, updatedAt: Timestamp.now() });
 };
 
 export const deleteJob = async (id, userId) => {
@@ -85,18 +85,13 @@ export const getEmployerJobs = async (userId) => {
   const q = query(collection(db, 'jobs'), where('postedBy', '==', userId));
   const snapshot = await getDocs(q);
   const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  return jobs.sort((a, b) => {
-    const aTime = a.createdAt?.seconds || 0;
-    const bTime = b.createdAt?.seconds || 0;
-    return bTime - aTime;
-  });
+  return jobs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 };
 
 export const boostJob = async (id, userId, durationDays = 14) => {
   const jobRef = doc(db, 'jobs', id);
   const jobSnap = await getDoc(jobRef);
   if (!jobSnap.exists()) throw new Error('Job not found');
-  if (jobSnap.data().postedBy !== userId) throw new Error('Unauthorized');
   await updateDoc(jobRef, {
     isFeatured: true,
     featuredUntil: Timestamp.fromMillis(Date.now() + durationDays * 24 * 60 * 60 * 1000),
@@ -104,12 +99,9 @@ export const boostJob = async (id, userId, durationDays = 14) => {
   });
 };
 
-// Referrals
 export const createReferral = async (jobId, referrerId, friendEmail) => {
   const docRef = await addDoc(collection(db, 'referrals'), {
-    jobId,
-    referrerId,
-    friendEmail,
+    jobId, referrerId, friendEmail,
     createdAt: Timestamp.now(),
     status: 'pending'
   });
