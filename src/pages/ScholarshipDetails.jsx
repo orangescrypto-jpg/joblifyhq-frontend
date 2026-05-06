@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiMapPin, FiClock, FiDollarSign, FiBookmark, FiExternalLink, FiCalendar, FiSend } from 'react-icons/fi';
-import { getJobById } from '../services/firebase/jobs';
+import { FiGlobe, FiCalendar, FiAward, FiBookmark, FiExternalLink, FiSend } from 'react-icons/fi';
+import { getScholarshipById } from '../services/firebase/scholarships';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../context/DashboardContext';
 import ApplyModal from '../components/common/ApplyModal';
@@ -36,23 +36,23 @@ function RichDescription({ text }) {
   );
 }
 
-export default function JobDetails() {
+export default function ScholarshipDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { savedJobs, toggleSaveJob } = useDashboard();
-  const [job, setJob] = useState(null);
+  const { savedScholarships, toggleSaveScholarship } = useDashboard();
+  const [scholarship, setScholarship] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
 
   useEffect(() => {
-    getJobById(id).then(data => {
-      setJob(data || null);
+    getScholarshipById(id).then(data => {
+      setScholarship(data || null);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [id]);
 
-  const isSaved = savedJobs.some(j => j.jobId === id || j.id === id);
+  const isSaved = savedScholarships.some(s => s.scholarshipId === id || s.id === id);
 
   if (loading) return (
     <div className="animate-pulse space-y-4 p-10 max-w-4xl mx-auto">
@@ -62,10 +62,10 @@ export default function JobDetails() {
     </div>
   );
 
-  if (!job) return (
+  if (!scholarship) return (
     <div className="text-center py-20">
-      <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Job Not Found</h2>
-      <button onClick={() => navigate('/jobs')} className="btn-primary">Browse Jobs</button>
+      <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Scholarship Not Found</h2>
+      <button onClick={() => navigate('/scholarships')} className="btn-primary">Browse Scholarships</button>
     </div>
   );
 
@@ -77,50 +77,45 @@ export default function JobDetails() {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
             <div>
-              {job.isFeatured && (
+              {scholarship.isFeatured && (
                 <span className="inline-block mb-2 text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 border border-yellow-300 rounded-full font-semibold">⚡ Featured</span>
               )}
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{job.title}</h1>
-              <p className="text-lg text-primary-600 font-medium mt-1">{job.company}</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{scholarship.title}</h1>
+              <p className="text-lg text-primary-600 font-medium mt-1">{scholarship.org}</p>
             </div>
             <button
-              onClick={() => user ? toggleSaveJob(job) : navigate('/login')}
+              onClick={() => user ? toggleSaveScholarship(scholarship) : navigate('/login')}
               className={`p-3 rounded-lg border self-start ${isSaved ? 'bg-primary-50 border-primary-200 text-primary-600' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'} hover:opacity-80 transition`}
-              title={isSaved ? 'Unsave Job' : 'Save Job'}
+              title={isSaved ? 'Unsave' : 'Save Scholarship'}
             >
               <FiBookmark size={20} />
             </button>
           </div>
 
           {/* Info Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-              <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">Location</span>
-              <span className="font-medium text-gray-900 dark:text-white flex items-center justify-center gap-1 text-sm"><FiMapPin size={14} /> {job.location}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center justify-between">
+              <span className="text-gray-500 dark:text-gray-400 text-sm">Host Country</span>
+              <span className="font-medium text-gray-900 dark:text-white flex items-center gap-2 text-sm"><FiGlobe size={14} /> {scholarship.country}</span>
             </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-              <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">Type</span>
-              <span className="font-medium text-gray-900 dark:text-white flex items-center justify-center gap-1 text-sm"><FiClock size={14} /> {job.type}</span>
+            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center justify-between">
+              <span className="text-gray-500 dark:text-gray-400 text-sm">Funding Type</span>
+              <span className="font-medium text-gray-900 dark:text-white flex items-center gap-2 text-sm"><FiAward size={14} /> {scholarship.type}</span>
             </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-              <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">Salary</span>
-              <span className="font-medium text-gray-900 dark:text-white flex items-center justify-center gap-1 text-sm"><FiDollarSign size={14} /> {job.salary || 'N/A'}</span>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-              <span className="text-sm text-gray-500 dark:text-gray-400 block mb-1">Deadline</span>
-              <span className="font-medium text-gray-900 dark:text-white flex items-center justify-center gap-1 text-sm"><FiCalendar size={14} /> {job.deadline}</span>
+            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center justify-between">
+              <span className="text-gray-500 dark:text-gray-400 text-sm">Deadline</span>
+              <span className="font-medium text-gray-900 dark:text-white flex items-center gap-2 text-sm"><FiCalendar size={14} /> {scholarship.deadline}</span>
             </div>
           </div>
 
           {/* Description */}
           <div className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">About the Role</h3>
-            <RichDescription text={job.description} />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">Overview</h3>
+            <RichDescription text={scholarship.description} />
           </div>
 
           {/* Apply Buttons */}
           <div className="space-y-3">
-            {/* One-click apply — always shown */}
             <button
               onClick={() => setApplyModalOpen(true)}
               className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition text-lg"
@@ -128,15 +123,14 @@ export default function JobDetails() {
               <FiSend size={18} /> Apply on JoblifyHQ
             </button>
 
-            {/* External apply link — shown as secondary if available */}
-            {job.applyLink && (
+            {scholarship.applyLink && (
               <a
-                href={job.applyLink}
+                href={scholarship.applyLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 font-semibold py-3 px-6 rounded-xl transition"
               >
-                <FiExternalLink size={16} /> Apply on Company Website
+                <FiExternalLink size={16} /> Apply on Official Website
               </a>
             )}
           </div>
@@ -147,8 +141,8 @@ export default function JobDetails() {
       <ApplyModal
         isOpen={applyModalOpen}
         onClose={() => setApplyModalOpen(false)}
-        opportunity={job}
-        type="job"
+        opportunity={scholarship}
+        type="scholarship"
       />
     </div>
   );
