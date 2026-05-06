@@ -79,22 +79,28 @@ export const deleteJob = async (id, userId) => {
 };
 
 export const getEmployerJobs = async (userId) => {
+  // Uses only 'where' — no composite index needed in Firestore
+  // Sorting is done in JS after fetching
   const q = query(
     collection(db, 'jobs'),
-    where('postedBy', '==', userId),
-    orderBy('createdAt', 'desc')
+    where('postedBy', '==', userId)
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // Sort newest first in JavaScript
+  return jobs.sort((a, b) => {
+    const aTime = a.createdAt?.seconds || 0;
+    const bTime = b.createdAt?.seconds || 0;
+    return bTime - aTime;
+  });
 };
 
 export const boostJob = async (id, userId, durationDays = 14) => {
   const jobRef = doc(db, 'jobs', id);
   const jobSnap = await getDoc(jobRef);
 
-  if (jobSnap.data().postedBy !== userId) {
-    throw new Error('Unauthorized');
-  }
+  if (!jobSnap.exists()) throw new Error('Job not found');
+  if (jobSnap.data().postedBy !== userId) throw new Error('Unauthorized');
 
   await updateDoc(jobRef, {
     isFeatured: true,
