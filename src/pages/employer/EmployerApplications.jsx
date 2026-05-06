@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiMail, FiPhone, FiEye, FiX, FiUsers, FiRefreshCw } from 'react-icons/fi';
+import { FiMail, FiPhone, FiEye, FiX, FiUsers, FiRefreshCw, FiFileText } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { getEmployerJobs } from '../../services/firebase/jobs';
 import { getEmployerScholarships } from '../../services/firebase/scholarships';
@@ -44,7 +44,6 @@ export default function EmployerApplications() {
         ...scholarships.map(s => ({ ...s, listingType: 'scholarship' }))
       ];
 
-      // Save job titles for filter dropdown
       setJobTitles(allListings.map(l => ({ id: l.id, title: l.title })));
 
       if (allListings.length === 0) {
@@ -55,7 +54,6 @@ export default function EmployerApplications() {
 
       const allIds = allListings.map(l => l.id);
 
-      // Firestore 'in' supports max 10 at a time
       const chunks = [];
       for (let i = 0; i < allIds.length; i += 10) {
         chunks.push(allIds.slice(i, i + 10));
@@ -71,7 +69,6 @@ export default function EmployerApplications() {
         allApps = [...allApps, ...snap.docs.map(d => ({ id: d.id, ...d.data() }))];
       }
 
-      // Sort newest first
       allApps.sort((a, b) => (b.appliedAt?.seconds || 0) - (a.appliedAt?.seconds || 0));
       setApplications(allApps);
     } catch (err) {
@@ -203,6 +200,18 @@ export default function EmployerApplications() {
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-2">{app.coverNote}</p>
                   )}
 
+                  {/* CV download link in list card */}
+                  {app.cvUrl && (
+                    <a
+                      href={app.cvUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-2 text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium"
+                    >
+                      <FiFileText size={12} /> {app.cvFileName || 'View CV'}
+                    </a>
+                  )}
+
                   <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500 dark:text-gray-400">
                     {app.userEmail && <span>📧 {app.userEmail}</span>}
                     {app.phone && <span>📱 {app.phone}</span>}
@@ -281,6 +290,21 @@ export default function EmployerApplications() {
                 </div>
               </div>
 
+              {/* CV Section in detail modal */}
+              {selectedApp.cvUrl && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CV / Resume</p>
+                  <a
+                    href={selectedApp.cvUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/40 transition text-sm font-medium border border-primary-200 dark:border-primary-800"
+                  >
+                    <FiFileText size={15} /> {selectedApp.cvFileName || 'View CV / Resume'}
+                  </a>
+                </div>
+              )}
+
               {selectedApp.coverNote && (
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cover Note</p>
@@ -301,6 +325,16 @@ export default function EmployerApplications() {
                   <a href={`tel:${selectedApp.phone.replace(/\s/g, '')}`}
                     className="btn-secondary flex items-center gap-2">
                     <FiPhone /> Call Now
+                  </a>
+                )}
+                {selectedApp.cvUrl && (
+                  <a
+                    href={selectedApp.cvUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    <FiFileText /> Download CV
                   </a>
                 )}
                 <button onClick={() => setSelectedApp(null)} className="btn-secondary">Close</button>
