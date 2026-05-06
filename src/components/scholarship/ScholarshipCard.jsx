@@ -1,7 +1,26 @@
 import { Link } from 'react-router-dom';
 import { FiGlobe, FiCalendar, FiAward } from 'react-icons/fi';
 
+const COUNTRY_FLAGS = {
+  'Nigeria': '🇳🇬', 'Ghana': '🇬🇭', 'Kenya': '🇰🇪', 'South Africa': '🇿🇦',
+  'Uganda': '🇺🇬', 'Rwanda': '🇷🇼', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
+  'Senegal': '🇸🇳', 'Cameroon': '🇨🇲', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
+  'Botswana': '🇧🇼', 'Namibia': '🇳🇦', 'Egypt': '🇪🇬', 'Morocco': '🇲🇦',
+  'Tunisia': '🇹🇳', "Côte d'Ivoire": '🇨🇮', 'UK': '🇬🇧', 'USA': '🇺🇸',
+  'Canada': '🇨🇦', 'Australia': '🇦🇺', 'Germany': '🇩🇪', 'France': '🇫🇷',
+  'China': '🇨🇳', 'Worldwide': '🌍', 'International': '🌍',
+};
+
+function getFlag(country = '') {
+  for (const [name, flag] of Object.entries(COUNTRY_FLAGS)) {
+    if (country.toLowerCase().includes(name.toLowerCase())) return flag;
+  }
+  return '🌍';
+}
+
 export default function ScholarshipCard({ scholarship }) {
+  const flag = getFlag(scholarship.country || '');
+
   return (
     <Link
       to={`/scholarships/${scholarship.id}`}
@@ -20,7 +39,7 @@ export default function ScholarshipCard({ scholarship }) {
       </div>
       <p className="text-sm text-gray-600 dark:text-gray-400">{scholarship.org}</p>
       <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-1">
-        <span className="flex items-center gap-1"><FiGlobe /> {scholarship.country}</span>
+        <span className="flex items-center gap-1"><FiGlobe /> {flag} {scholarship.country}</span>
         <span className="flex items-center gap-1"><FiCalendar /> {scholarship.deadline}</span>
       </div>
       <div className="mt-auto pt-3 flex justify-between items-center border-t border-gray-100 dark:border-gray-800">
