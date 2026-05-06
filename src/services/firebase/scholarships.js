@@ -67,13 +67,20 @@ export const deleteScholarship = async (id, userId) => {
 };
 
 export const getEmployerScholarships = async (userId) => {
+  // Uses only 'where' — no composite index needed in Firestore
+  // Sorting is done in JS after fetching
   const q = query(
     collection(db, 'scholarships'),
-    where('postedBy', '==', userId),
-    orderBy('createdAt', 'desc')
+    where('postedBy', '==', userId)
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const scholarships = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // Sort newest first in JavaScript
+  return scholarships.sort((a, b) => {
+    const aTime = a.createdAt?.seconds || 0;
+    const bTime = b.createdAt?.seconds || 0;
+    return bTime - aTime;
+  });
 };
 
 export const boostScholarship = async (id, userId, durationDays = 14) => {
