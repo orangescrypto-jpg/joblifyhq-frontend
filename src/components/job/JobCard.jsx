@@ -1,7 +1,24 @@
 import { Link } from 'react-router-dom';
 import { FiMapPin, FiClock, FiDollarSign } from 'react-icons/fi';
 
+const COUNTRY_FLAGS = {
+  'Nigeria': '🇳🇬', 'Ghana': '🇬🇭', 'Kenya': '🇰🇪', 'South Africa': '🇿🇦',
+  'Uganda': '🇺🇬', 'Rwanda': '🇷🇼', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
+  'Senegal': '🇸🇳', 'Cameroon': '🇨🇲', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
+  'Botswana': '🇧🇼', 'Namibia': '🇳🇦', 'Egypt': '🇪🇬', 'Morocco': '🇲🇦',
+  'Tunisia': '🇹🇳', "Côte d'Ivoire": '🇨🇮', 'Remote': '🌍',
+};
+
+function getFlag(location = '') {
+  for (const [country, flag] of Object.entries(COUNTRY_FLAGS)) {
+    if (location.toLowerCase().includes(country.toLowerCase())) return flag;
+  }
+  return '🌍';
+}
+
 export default function JobCard({ job }) {
+  const flag = getFlag(job.location || job.country || '');
+
   return (
     <Link
       to={`/jobs/${job.id}`}
@@ -18,9 +35,9 @@ export default function JobCard({ job }) {
       </div>
       <p className="text-sm text-gray-600 dark:text-gray-400">{job.company}</p>
       <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-1">
-        <span className="flex items-center gap-1"><FiMapPin /> {job.location}</span>
-        <span className="flex items-center gap-1"><FiDollarSign /> {job.salary}</span>
-        <span className="flex items-center gap-1"><FiClock /> {job.posted}</span>
+        <span className="flex items-center gap-1"><FiMapPin /> {flag} {job.location}</span>
+        <span className="flex items-center gap-1"><FiDollarSign /> {job.salary || 'N/A'}</span>
+        <span className="flex items-center gap-1"><FiClock /> {job.posted || ''}</span>
       </div>
       <div className="mt-auto pt-3 flex justify-between items-center border-t border-gray-100 dark:border-gray-800">
         <span className="text-xs text-gray-500">Deadline: {job.deadline}</span>
