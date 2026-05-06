@@ -26,7 +26,13 @@ const COUNTRY_FLAGS = {
 
 const CATEGORIES = [
   'Engineering', 'Design', 'Marketing', 'Sales', 'Finance',
-  'Education', 'Healthcare', 'STEM', 'Agriculture', 'Law', 'Media', 'Tech'
+  'Education', 'Healthcare', 'STEM', 'Agriculture', 'Law', 'Media', 'Tech',
+  'Business', 'Accounting', 'Human Resources', 'Logistics & Supply Chain',
+  'Hospitality & Tourism', 'Real Estate', 'Construction', 'Energy & Oil',
+  'NGO & Non-Profit', 'Government & Public Sector', 'Research & Development',
+  'Social Work', 'Journalism', 'Sports & Fitness', 'Arts & Entertainment',
+  'Information Technology', 'Cybersecurity', 'Data Science', 'Aviation',
+  'Banking', 'Insurance', 'Telecommunications', 'Other'
 ];
 
 function SimpleEditor({ value, onChange, rows = 6, placeholder = '' }) {
