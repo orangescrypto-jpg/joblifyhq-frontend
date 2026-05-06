@@ -3,17 +3,16 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getEmployerJobs } from '../../services/firebase/jobs';
 import { getEmployerScholarships } from '../../services/firebase/scholarships';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { FiPlus, FiTrendingUp, FiUsers, FiClock } from 'react-icons/fi';
+import { FiPlus, FiTrendingUp, FiUsers, FiClock, FiBriefcase, FiAward, FiEdit2, FiEye } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalViews: 0,
-    totalApplications: 0,
-    activeListings: 0
-  });
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({ totalViews: 0, totalApplications: 0, activeListings: 0 });
+  const [listings, setListings] = useState([]);
   const [recentApps, setRecentApps] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,39 +21,37 @@ export default function EmployerDashboard() {
 
     const fetchDashboardData = async () => {
       try {
-        const jobs = await getEmployerJobs(user.uid);
-        const scholarships = await getEmployerScholarships(user.uid);
+        const [jobs, scholarships] = await Promise.all([
+          getEmployerJobs(user.uid),
+          getEmployerScholarships(user.uid)
+        ]);
 
-        const totalViews = jobs.reduce((sum, job) => sum + (job.views || 0), 0) +
-                          scholarships.reduce((sum, sch) => sum + (sch.views || 0), 0);
-        const totalApplications = jobs.reduce((sum, job) => sum + (job.applications || 0), 0) +
-                                 scholarships.reduce((sum, sch) => sum + (sch.applications || 0), 0);
+        const totalViews = jobs.reduce((sum, j) => sum + (j.views || 0), 0) +
+                           scholarships.reduce((sum, s) => sum + (s.views || 0), 0);
+        const totalApplications = jobs.reduce((sum, j) => sum + (j.applications || 0), 0) +
+                                  scholarships.reduce((sum, s) => sum + (s.applications || 0), 0);
 
-        setStats({
-          totalViews,
-          totalApplications,
-          activeListings: jobs.length + scholarships.length
-        });
+        setStats({ totalViews, totalApplications, activeListings: jobs.length + scholarships.length });
 
-        // Only query applications if there are listings
+        // Combine and tag listings, show latest 5
+        const jobsTagged = jobs.map(j => ({ ...j, listingType: 'job' }));
+        const scholsTagged = scholarships.map(s => ({ ...s, listingType: 'scholarship' }));
+        const all = [...jobsTagged, ...scholsTagged].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setListings(all.slice(0, 5));
+
+        // Fetch recent applications
         const allIds = [...jobs.map(j => j.id), ...scholarships.map(s => s.id)];
-        if (allIds.length === 0) {
-          setRecentApps([]);
-          return;
-        }
+        if (allIds.length === 0) { setRecentApps([]); return; }
 
-        // Firestore 'in' query supports max 10 items
         const appsQuery = query(
           collection(db, 'applications'),
           where('opportunityId', 'in', allIds.slice(0, 10))
         );
         const appsSnap = await getDocs(appsQuery);
-        const appsData = appsSnap.docs.slice(0, 3).map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-
-        setRecentApps(appsData);
+        const appsData = appsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort by appliedAt descending
+        appsData.sort((a, b) => (b.appliedAt?.seconds || 0) - (a.appliedAt?.seconds || 0));
+        setRecentApps(appsData.slice(0, 3));
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -66,7 +63,13 @@ export default function EmployerDashboard() {
   }, [user?.uid]);
 
   if (loading) {
-    return <div className="text-center py-12">Loading dashboard...</div>;
+    return (
+      <div className="space-y-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-20 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -90,9 +93,7 @@ export default function EmployerDashboard() {
               <p className="text-sm text-gray-500 dark:text-gray-400">Total Views</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalViews}</p>
             </div>
-            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600">
-              <FiTrendingUp />
-            </div>
+            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600"><FiTrendingUp /></div>
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -101,9 +102,7 @@ export default function EmployerDashboard() {
               <p className="text-sm text-gray-500 dark:text-gray-400">Applications</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalApplications}</p>
             </div>
-            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600">
-              <FiUsers />
-            </div>
+            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600"><FiUsers /></div>
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -112,11 +111,66 @@ export default function EmployerDashboard() {
               <p className="text-sm text-gray-500 dark:text-gray-400">Active Listings</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.activeListings}</p>
             </div>
-            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600">
-              <FiClock />
-            </div>
+            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600"><FiClock /></div>
           </div>
         </div>
+      </div>
+
+      {/* My Listings Preview */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">My Listings</h2>
+          <Link to="/employer/listings" className="text-sm text-primary-600 hover:underline">Manage All →</Link>
+        </div>
+
+        {listings.length === 0 ? (
+          <div className="p-8 text-center">
+            <p className="text-gray-500 dark:text-gray-400 mb-4">No listings yet. Post your first job or scholarship!</p>
+            <Link to="/employer/post-job" className="btn-primary inline-flex items-center gap-2">
+              <FiPlus /> Post Now
+            </Link>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {listings.map(listing => (
+              <div key={listing.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`p-2 rounded-lg shrink-0 ${listing.listingType === 'job' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-purple-100 dark:bg-purple-900/30 text-purple-600'}`}>
+                    {listing.listingType === 'job' ? <FiBriefcase size={16} /> : <FiAward size={16} />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-white text-sm truncate">{listing.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {listing.listingType === 'job' ? listing.company : listing.org} •
+                      <span className="ml-1"><FiEye size={10} className="inline" /> {listing.views || 0} views</span>
+                      {listing.isFeatured && <span className="ml-2 text-amber-500 font-semibold">⚡ Featured</span>}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <span className="text-xs text-gray-400 hidden sm:block">
+                    Deadline: {listing.deadline || 'N/A'}
+                  </span>
+                  <button
+                    onClick={() => navigate('/employer/listings')}
+                    className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition"
+                    title="Edit"
+                  >
+                    <FiEdit2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {listings.length > 0 && (
+          <div className="p-4 border-t border-gray-100 dark:border-gray-700 text-center">
+            <Link to="/employer/listings" className="text-sm text-primary-600 hover:underline font-medium">
+              View & manage all {stats.activeListings} listing{stats.activeListings !== 1 ? 's' : ''} →
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Recent Applications */}
@@ -136,12 +190,15 @@ export default function EmployerDashboard() {
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">{app.userName || 'Anonymous'}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Applied for: {app.title}</p>
+                  {app.userEmail && <p className="text-xs text-gray-400 mt-0.5">{app.userEmail}</p>}
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-xs text-gray-400">
-                    {app.appliedAt?.toDate().toLocaleDateString() || 'Recently'}
+                    {app.appliedAt?.toDate
+                      ? app.appliedAt.toDate().toLocaleDateString()
+                      : 'Recently'}
                   </span>
-                  <Link to={`/employer/applications/${app.id}`} className="text-sm text-primary-600 hover:underline">Review</Link>
+                  <Link to="/employer/applications" className="text-sm text-primary-600 hover:underline">Review</Link>
                 </div>
               </div>
             ))
