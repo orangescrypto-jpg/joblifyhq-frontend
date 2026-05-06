@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiPlus, FiBriefcase, FiAward, FiFileText, FiEdit2, FiTrash2, FiStar } from 'react-icons/fi';
+import { FiPlus, FiBriefcase, FiAward, FiFileText, FiEdit2, FiTrash2, FiEye, FiUsers, FiTrendingUp } from 'react-icons/fi';
 import AdminFormModal from '../components/admin/AdminFormModal';
 import { getJobs, createJob, updateJob, deleteJob } from '../services/firebase/jobs';
 import { getScholarships, createScholarship, updateScholarship, deleteScholarship } from '../services/firebase/scholarships';
@@ -12,6 +12,23 @@ const TABS = [
   { key: 'scholarship', label: 'Scholarships', icon: FiAward },
   { key: 'blog', label: 'Blog Posts', icon: FiFileText },
 ];
+
+const COUNTRY_FLAGS = {
+  'Nigeria': '🇳🇬', 'Ghana': '🇬🇭', 'Kenya': '🇰🇪', 'South Africa': '🇿🇦',
+  'Uganda': '🇺🇬', 'Rwanda': '🇷🇼', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
+  'Senegal': '🇸🇳', 'Cameroon': '🇨🇲', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
+  'Botswana': '🇧🇼', 'Namibia': '🇳🇦', 'Egypt': '🇪🇬', 'Morocco': '🇲🇦',
+  'Tunisia': '🇹🇳', "Côte d'Ivoire": '🇨🇮', 'UK': '🇬🇧', 'USA': '🇺🇸',
+  'Canada': '🇨🇦', 'Australia': '🇦🇺', 'Germany': '🇩🇪', 'France': '🇫🇷',
+  'China': '🇨🇳', 'Worldwide': '🌍', 'Remote': '🌍'
+};
+
+function getFlag(location = '') {
+  for (const [name, flag] of Object.entries(COUNTRY_FLAGS)) {
+    if (location.toLowerCase().includes(name.toLowerCase())) return flag;
+  }
+  return '🌍';
+}
 
 export default function Admin() {
   const { user } = useAuth();
@@ -61,14 +78,10 @@ export default function Admin() {
     try {
       const colName = activeTab === 'job' ? 'jobs' : 'scholarships';
       const ref = doc(db, colName, item.id);
-      await updateDoc(ref, {
-        isFeatured: !item.isFeatured,
-        updatedAt: Timestamp.now()
-      });
+      await updateDoc(ref, { isFeatured: !item.isFeatured, updatedAt: Timestamp.now() });
       showToast(item.isFeatured ? 'Removed from featured' : '⚡ Marked as Featured!');
       fetchItems();
     } catch (err) {
-      console.error('Boost error:', err);
       showToast('Failed to update featured status', 'error');
     }
   };
@@ -85,7 +98,6 @@ export default function Admin() {
       setDeleteTarget(null);
       fetchItems();
     } catch (err) {
-      console.error('Delete error:', err);
       showToast('Failed to delete', 'error');
     } finally {
       setActionLoading(false);
@@ -115,21 +127,27 @@ export default function Admin() {
       setEditItem(null);
       fetchItems();
     } catch (err) {
-      console.error('Save error:', err);
       showToast('Failed to save. Please try again.', 'error');
     } finally {
       setActionLoading(false);
     }
   };
 
+  // Stats for current tab
+  const totalViews = items.reduce((sum, i) => sum + (i.views || 0), 0);
+  const totalApplications = items.reduce((sum, i) => sum + (i.applications || 0), 0);
+  const totalFeatured = items.filter(i => i.isFeatured).length;
+
   const columns = {
-    job: ['title', 'company', 'location', 'type', 'deadline'],
+    job: ['title', 'company', 'country', 'type', 'deadline'],
     scholarship: ['title', 'org', 'country', 'type', 'deadline'],
     blog: ['title', 'author', 'category'],
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto">
+
+      {/* Toast */}
       {toast && (
         <div className={`fixed top-5 right-5 z-50 px-5 py-3 rounded-xl shadow-lg text-white font-medium ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>
           {toast.msg}
@@ -143,20 +161,32 @@ export default function Admin() {
         </button>
       </div>
 
+      {/* Stats Row — only for jobs and scholarships */}
+      {activeTab !== 'blog' && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: 'Total', value: items.length, icon: FiTrendingUp, color: 'text-gray-900 dark:text-white' },
+            { label: 'Total Views', value: totalViews, icon: FiEye, color: 'text-blue-600' },
+            { label: 'Applications', value: totalApplications, icon: FiUsers, color: 'text-primary-600' },
+            { label: 'Featured', value: totalFeatured, icon: null, color: 'text-amber-600', emoji: '⚡' },
+          ].map(stat => (
+            <div key={stat.label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+              <p className={`text-2xl font-bold ${stat.color}`}>
+                {stat.emoji && <span className="mr-1">{stat.emoji}</span>}{stat.value}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
         {TABS.map(tab => {
           const Icon = tab.icon;
           return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition -mb-px ${
-                activeTab === tab.key
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition -mb-px ${activeTab === tab.key ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}>
               <Icon size={16} /> {tab.label}
             </button>
           );
@@ -184,49 +214,62 @@ export default function Admin() {
                   <th key={col} className="px-4 py-3 capitalize">{col}</th>
                 ))}
                 {activeTab !== 'blog' && (
-                  <th className="px-4 py-3 text-center">Featured</th>
+                  <>
+                    <th className="px-4 py-3 text-center">Views</th>
+                    <th className="px-4 py-3 text-center">Applications</th>
+                    <th className="px-4 py-3 text-center">Featured</th>
+                  </>
                 )}
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {items.map(item => (
-                <tr key={item.id} className={`bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition ${item.isFeatured ? 'border-l-4 border-yellow-400' : ''}`}>
+                <tr key={item.id}
+                  className={`bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition ${item.isFeatured ? 'border-l-4 border-yellow-400' : ''}`}>
+
                   {columns[activeTab].map(col => (
-                    <td key={col} className="px-4 py-3 text-gray-800 dark:text-gray-200 max-w-[200px] truncate">
-                      {item[col] || '—'}
+                    <td key={col} className="px-4 py-3 text-gray-800 dark:text-gray-200 max-w-[180px] truncate">
+                      {col === 'country' || col === 'location'
+                        ? <span>{getFlag(item[col] || '')} {item[col] || '—'}</span>
+                        : item[col] || '—'}
                     </td>
                   ))}
+
                   {activeTab !== 'blog' && (
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => handleBoost(item)}
-                        title={item.isFeatured ? 'Remove Featured' : 'Mark as Featured'}
-                        className={`p-2 rounded-lg transition text-lg ${
-                          item.isFeatured
-                            ? 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
-                            : 'text-gray-300 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
-                        }`}
-                      >
-                        ⚡
-                      </button>
-                    </td>
+                    <>
+                      <td className="px-4 py-3 text-center">
+                        <span className="flex items-center justify-center gap-1 text-gray-500 dark:text-gray-400">
+                          <FiEye size={13} /> {item.views || 0}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="flex items-center justify-center gap-1 text-primary-600 font-medium">
+                          <FiUsers size={13} /> {item.applications || 0}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => handleBoost(item)}
+                          title={item.isFeatured ? 'Remove Featured' : 'Mark as Featured'}
+                          className={`p-2 rounded-lg transition text-base ${item.isFeatured ? 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' : 'text-gray-300 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'}`}>
+                          ⚡
+                        </button>
+                      </td>
+                    </>
                   )}
+
                   <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => handleEdit(item)}
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => handleEdit(item)}
                         className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition"
-                        title="Edit"
-                      >
-                        <FiEdit2 size={16} />
+                        title="Edit">
+                        <FiEdit2 size={15} />
                       </button>
-                      <button
-                        onClick={() => handleDeleteClick(item)}
+                      <button onClick={() => handleDeleteClick(item)}
                         className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                        title="Delete"
-                      >
-                        <FiTrash2 size={16} />
+                        title="Delete">
+                        <FiTrash2 size={15} />
                       </button>
                     </div>
                   </td>
@@ -255,17 +298,10 @@ export default function Admin() {
               "<span className="font-medium text-gray-700 dark:text-gray-300">{deleteTarget?.title}</span>" will be permanently deleted.
             </p>
             <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => { setConfirmDelete(false); setDeleteTarget(null); }}
-                className="btn-secondary dark:bg-gray-800 dark:text-white dark:border-gray-700"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={actionLoading}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition disabled:opacity-50"
-              >
+              <button onClick={() => { setConfirmDelete(false); setDeleteTarget(null); }}
+                className="btn-secondary dark:bg-gray-800 dark:text-white dark:border-gray-700">Cancel</button>
+              <button onClick={handleDeleteConfirm} disabled={actionLoading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition disabled:opacity-50">
                 {actionLoading ? 'Deleting...' : 'Delete'}
               </button>
             </div>
