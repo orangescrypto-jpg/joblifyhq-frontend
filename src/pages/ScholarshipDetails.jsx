@@ -5,6 +5,7 @@ import { getScholarshipById } from '../services/firebase/scholarships';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../context/DashboardContext';
 import ApplyModal from '../components/common/ApplyModal';
+import ShareButtons from '../components/blog/ShareButtons';
 
 function RichDescription({ text }) {
   if (!text) return null;
@@ -133,6 +134,14 @@ export default function ScholarshipDetails() {
                 <FiExternalLink size={16} /> Apply on Official Website
               </a>
             )}
+          </div>
+
+          {/* Share Section */}
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <ShareButtons
+              title={`${scholarship.title} — ${scholarship.org} | JoblifyHQ`}
+              url={typeof window !== 'undefined' ? window.location.href : ''}
+            />
           </div>
 
         </div>
