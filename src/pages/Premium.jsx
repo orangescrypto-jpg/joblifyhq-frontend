@@ -112,15 +112,14 @@ export default function Premium() {
   const [openFaq, setOpenFaq] = useState(null);
 
   const isPremium = user?.tier === 'premium' || user?.tier === 'premium-annual';
-  const flutterKey = FLUTTERWAVE_PUBLIC_KEY;
 
   const handleFlutterPayment = useFlutterwave({
-    public_key: flutterKey,
+    public_key: FLUTTERWAVE_PUBLIC_KEY,
     currency: 'USD',
     payment_options: 'card,mobilemoney,ussd,banktransfer',
     customer: {
-      email: user?.email,
-      name: user?.displayName || 'Joblify User',
+      email: user?.email || '',
+      name: user?.displayName || user?.name || 'Joblify User',
     },
     customizations: {
       title: 'JoblifyHQ Premium',
@@ -152,24 +151,28 @@ export default function Premium() {
             await updateDoc(doc(db, 'users', user.uid), {
               tier: planId,
               premiumSince: serverTimestamp(),
-              premiumExpiresAt: Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000)),
+              premiumExpiresAt: Timestamp.fromDate(
+                new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+              ),
               premiumPlan: planId,
               flwTransactionId: response.transaction_id,
               updatedAt: serverTimestamp(),
             });
-            await updateUserProfile({ tier: planId });
-
-            setSuccess(planId === 'premium-annual'
-              ? "You're now on the Annual Premium plan! Welcome to the top tier. 🎉"
-              : "You're now a Premium member! Your profile boost is live. 🚀"
+            if (typeof updateUserProfile === 'function') {
+              await updateUserProfile({ tier: planId });
+            }
+            setSuccess(
+              planId === 'premium-annual'
+                ? "You're now on the Annual Premium plan! Welcome to the top tier. 🎉"
+                : "You're now a Premium member! Your profile boost is live. 🚀"
             );
             setTimeout(() => navigate('/dashboard'), 2000);
           } catch (err) {
             console.error(err);
-            setError('Payment succeeded but update failed. Contact support.');
+            setError('Payment succeeded but update failed. Please contact support with your transaction ID: ' + response.transaction_id);
           }
         } else {
-          setError('Payment not completed.');
+          setError('Payment was not completed. Please try again.');
         }
         setLoading(false);
         setLoadingPlan('');
@@ -183,6 +186,7 @@ export default function Premium() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+      {/* Hero */}
       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-purple-700 text-white py-16 px-4 text-center">
         <div className="max-w-2xl mx-auto">
           <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/20 rounded-full font-semibold mb-5 tracking-wide">
@@ -196,51 +200,105 @@ export default function Premium() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-12">
-        {success && <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm text-center">{success}</div>}
-        {error && <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm text-center">{error}</div>}
-
-        {isPremium && (
-          <div className="mb-10 p-5 bg-primary-50 border border-primary-200 rounded-2xl flex items-center gap-4">
-            <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center text-primary-600"><FiStar size={20} /></div>
-            <div>
-              <p className="font-semibold text-primary-800">You're already a Premium member!</p>
-              <p className="text-sm text-primary-600 mt-0.5 capitalize">Active plan: {user?.tier === 'premium-annual' ? 'Annual Premium' : 'Monthly Premium'}</p>
-            </div>
-            <button onClick={() => navigate('/dashboard')} className="ml-auto text-sm font-medium text-primary-600 hover:underline">Go to Dashboard →</button>
+        {success && (
+          <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm text-center font-medium">
+            {success}
+          </div>
+        )}
+        {error && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm text-center">
+            {error}
           </div>
         )}
 
+        {isPremium && (
+          <div className="mb-10 p-5 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-2xl flex items-center gap-4">
+            <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600">
+              <FiStar size={20} />
+            </div>
+            <div>
+              <p className="font-semibold text-primary-800 dark:text-primary-200">You're already a Premium member!</p>
+              <p className="text-sm text-primary-600 dark:text-primary-400 mt-0.5 capitalize">
+                Active plan: {user?.tier === 'premium-annual' ? 'Annual Premium' : 'Monthly Premium'}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="ml-auto text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
+            >
+              Go to Dashboard →
+            </button>
+          </div>
+        )}
+
+        {/* Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
           {PLANS.map((plan) => (
-            <div key={plan.id} className={`relative bg-white dark:bg-gray-800 rounded-2xl flex flex-col ${plan.accent ? 'border-2 border-primary-500 shadow-xl' : 'border border-gray-200 dark:border-gray-700'}`}>
-              {plan.badge && <span className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs px-4 py-1 rounded-full font-semibold ${plan.accent ? 'bg-primary-600 text-white' : 'bg-purple-600 text-white'}`}>{plan.badge}</span>}
+            <div
+              key={plan.id}
+              className={`relative bg-white dark:bg-gray-800 rounded-2xl flex flex-col ${plan.accent ? 'border-2 border-primary-500 shadow-xl' : 'border border-gray-200 dark:border-gray-700'}`}
+            >
+              {plan.badge && (
+                <span className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs px-4 py-1 rounded-full font-semibold whitespace-nowrap ${plan.accent ? 'bg-primary-600 text-white' : 'bg-purple-600 text-white'}`}>
+                  {plan.badge}
+                </span>
+              )}
               <div className="p-6 flex flex-col flex-1">
                 <div className="mb-5">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-white">{plan.name}</h2>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">{plan.description}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{plan.description}</p>
                   <div className="flex items-baseline gap-1 mt-3">
                     <span className="text-4xl font-bold text-gray-900 dark:text-white">{plan.price}</span>
                     <span className="text-sm text-gray-500 dark:text-gray-400">/{plan.period}</span>
                   </div>
-                  {plan.subtext && <p className="text-xs text-primary-600 dark:text-primary-400 mt-1 font-medium">{plan.subtext}</p>}
-                  {plan.localHint && <p className="text- text-gray-400 mt-1">{plan.localHint}</p>}
+                  {plan.subtext && (
+                    <p className="text-xs text-primary-600 dark:text-primary-400 mt-1 font-medium">{plan.subtext}</p>
+                  )}
+                  {plan.localHint && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{plan.localHint}</p>
+                  )}
                 </div>
+
                 <ul className="space-y-2.5 mb-6 flex-1">
                   {plan.features.map((f) => (
                     <li key={f.text} className={`flex items-start gap-2.5 text-sm ${f.included ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600'}`}>
-                      {f.included ? <FiCheck className="text-green-500 flex-shrink-0 mt-0.5" size={15} /> : <FiX className="text-gray-300 dark:text-gray-600 flex-shrink-0 mt-0.5" size={15} />}
+                      {f.included
+                        ? <FiCheck className="text-green-500 flex-shrink-0 mt-0.5" size={15} />
+                        : <FiX className="text-gray-300 dark:text-gray-600 flex-shrink-0 mt-0.5" size={15} />
+                      }
                       {f.text}
                     </li>
                   ))}
                 </ul>
-                <button onClick={() => handleUpgrade(plan.id)} disabled={plan.disabled || loading || (isPremium && plan.id === user?.tier)} className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${plan.disabled || (isPremium && plan.id === user?.tier) ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default' : plan.accent ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}>
-                  {loadingPlan === plan.id ? (<><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Processing…</>) : isPremium && plan.id === user?.tier ? ('✓ Active Plan') : (plan.cta)}
+
+                <button
+                  onClick={() => handleUpgrade(plan.id)}
+                  disabled={plan.disabled || loading || (isPremium && plan.id === user?.tier)}
+                  className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${
+                    plan.disabled || (isPremium && plan.id === user?.tier)
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default'
+                      : plan.accent
+                        ? 'bg-primary-600 hover:bg-primary-700 text-white'
+                        : 'bg-purple-600 hover:bg-purple-700 text-white'
+                  }`}
+                >
+                  {loadingPlan === plan.id ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      Processing…
+                    </>
+                  ) : isPremium && plan.id === user?.tier ? (
+                    '✓ Active Plan'
+                  ) : (
+                    plan.cta
+                  )}
                 </button>
               </div>
             </div>
           ))}
         </div>
 
+        {/* Perks */}
         <div className="mb-20">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Everything you unlock</h2>
@@ -248,22 +306,36 @@ export default function Premium() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {PERKS.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 flex gap-4">
-                <div className="w-10 h-10 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 flex-shrink-0"><Icon size={20} /></div>
-                <div><h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">{title}</h3><p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{desc}</p></div>
+                <div className="w-10 h-10 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 flex-shrink-0">
+                  <Icon size={20} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">{title}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{desc}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
+        {/* FAQs */}
         <div className="max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-8">Common questions</h2>
           <div className="space-y-3">
             {FAQS.map(({ q, a }, i) => (
               <div key={q} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
-                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between px-5 py-4 text-left gap-3">
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between px-5 py-4 text-left gap-3"
+                >
                   <span className="font-semibold text-gray-900 dark:text-white text-sm">{q}</span>
+                  <span className="text-gray-400 flex-shrink-0">{openFaq === i ? '−' : '+'}</span>
                 </button>
-                {openFaq === i && <div className="px-5 pb-4"><p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{a}</p></div>}
+                {openFaq === i && (
+                  <div className="px-5 pb-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{a}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
