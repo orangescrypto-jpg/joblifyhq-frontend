@@ -162,11 +162,6 @@ export default function Premium() {
     setSuccess('');
 
     try {
-      // 🔌 PAYSTACK INTEGRATION POINT
-      // Replace the block below with your Paystack/Flutterwave payment call.
-      // On payment success, run the Firestore update below.
-      // Example: await initiatePaystackPayment({ email: user.email, amount: planId === 'premium' ? 400 : 4000, ... });
-
       await updateDoc(doc(db, 'users', user.uid), {
         tier: planId,
         premiumSince: serverTimestamp(),
@@ -251,7 +246,7 @@ export default function Premium() {
         )}
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+        <div id="plans-anchor" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
           {PLANS.map((plan) => (
             <div
               key={plan.id}
@@ -405,7 +400,7 @@ export default function Premium() {
           {/* Bottom CTA */}
           <div className="mt-10 text-center">
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Still have questions?</p>
-            
+            <a
               href="/contact"
               className="text-primary-600 font-semibold hover:underline text-sm"
             >
