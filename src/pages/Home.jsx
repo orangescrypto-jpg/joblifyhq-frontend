@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Hero from '../components/common/Hero';
+import LiveTicker from '../components/common/LiveTicker';
 import JobCard from '../components/job/JobCard';
 import ScholarshipCard from '../components/scholarship/ScholarshipCard';
 import BlogCard from '../components/blog/BlogCard';
@@ -8,9 +9,9 @@ import LoadingSkeleton from '../components/common/LoadingSkeleton';
 import { getJobs } from '../services/firebase/jobs';
 import { getScholarships } from '../services/firebase/scholarships';
 import { getBlogs } from '../services/firebase/blog';
-import { getDocs, collection, query, orderBy, limit } from 'firebase/firestore';
+import { getDocs, collection } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { FiDollarSign, FiMapPin, FiTrendingUp } from 'react-icons/fi';
+import { FiDollarSign, FiTrendingUp } from 'react-icons/fi';
 
 function isWithin7Days(createdAt) {
   if (!createdAt) return false;
@@ -97,10 +98,10 @@ export default function Home() {
 
     const fetchSalaries = async () => {
       try {
-        const snap = await getDocs(
-          query(collection(db, 'salary_data'), orderBy('createdAt', 'desc'), limit(4))
-        );
-        setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const snap = await getDocs(collection(db, 'salary_data'));
+        const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        rows.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setSalaries(rows.slice(0, 4));
       } catch {
         setSalaries([]);
       } finally {
@@ -135,6 +136,9 @@ export default function Home() {
   return (
     <>
       <Hero />
+
+      {/* ── Live Ticker ── */}
+      <LiveTicker />
 
       {/* ── Featured Jobs ── */}
       {(loading || featuredJobs.length > 0) && (
@@ -249,7 +253,6 @@ export default function Home() {
             ))}
           </div>
         ) : salaries.length === 0 ? (
-          /* Empty state — only admins will ever see this while portal is new */
           <div className="bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border border-primary-100 dark:border-primary-800 rounded-2xl p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
               <p className="text-lg font-bold text-gray-900 dark:text-white mb-1">
@@ -259,10 +262,7 @@ export default function Home() {
                 Browse verified salary ranges for hundreds of roles across Nigeria, Ghana, Kenya, South Africa and more — completely free.
               </p>
             </div>
-            <Link
-              to="/salaries"
-              className="btn-primary whitespace-nowrap self-start md:self-center"
-            >
+            <Link to="/salaries" className="btn-primary whitespace-nowrap self-start md:self-center">
               Explore Salary Guide →
             </Link>
           </div>
@@ -275,12 +275,9 @@ export default function Home() {
                   to="/salaries"
                   className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 hover:shadow-md hover:border-primary-300 dark:hover:border-primary-700 transition flex items-center gap-4"
                 >
-                  {/* Icon */}
                   <div className="w-11 h-11 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 flex-shrink-0 group-hover:bg-primary-200 dark:group-hover:bg-primary-900/50 transition">
                     <FiDollarSign size={18} />
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-900 dark:text-white truncate group-hover:text-primary-600 transition">
                       {s.role}
@@ -298,8 +295,6 @@ export default function Home() {
                       )}
                     </div>
                   </div>
-
-                  {/* Salary */}
                   <div className="text-right flex-shrink-0">
                     <p className="text-lg font-bold text-primary-600">
                       {formatSalary(s.salaryMin, s.salaryMax, s.country)}
@@ -311,8 +306,6 @@ export default function Home() {
                 </Link>
               ))}
             </div>
-
-            {/* Bottom CTA */}
             <div className="mt-5 text-center">
               <Link
                 to="/salaries"
