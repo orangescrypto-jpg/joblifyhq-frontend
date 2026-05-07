@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { FLUTTERWAVE_PUBLIC_KEY } from '../config/payments';
 import {
   FiCheck, FiZap, FiStar, FiShield, FiBell,
   FiEye, FiFileText, FiTrendingUp, FiX,
@@ -111,8 +112,7 @@ export default function Premium() {
   const [openFaq, setOpenFaq] = useState(null);
 
   const isPremium = user?.tier === 'premium' || user?.tier === 'premium-annual';
-
-  const flutterKey = import.meta.env.VITE_FLW_PUBLIC_KEY;
+  const flutterKey = FLUTTERWAVE_PUBLIC_KEY;
 
   const handleFlutterPayment = useFlutterwave({
     public_key: flutterKey,
@@ -132,11 +132,6 @@ export default function Premium() {
     if (!user) { navigate('/login'); return; }
     if (planId === 'free') return;
     if (isPremium && planId === user?.tier) return;
-
-    if (!flutterKey) {
-      setError('Payment not configured. Add VITE_FLW_PUBLIC_KEY.');
-      return;
-    }
 
     setLoading(true);
     setLoadingPlan(planId);
@@ -188,7 +183,6 @@ export default function Premium() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
-      {/* Hero */}
       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-purple-700 text-white py-16 px-4 text-center">
         <div className="max-w-2xl mx-auto">
           <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/20 rounded-full font-semibold mb-5 tracking-wide">
@@ -198,11 +192,6 @@ export default function Premium() {
           <p className="text-primary-100 text-lg max-w-xl mx-auto leading-relaxed">
             Unlock tools that get you noticed by employers, keep you ahead of deadlines, and move your African career forward.
           </p>
-          <div className="flex flex-wrap justify-center gap-3 mt-6 text-sm">
-            {['Profile Boost', 'Unlimited Alerts', 'Who Viewed You', 'Application Tracking'].map(tag => (
-              <span key={tag} className="px-3 py-1 bg-white/15 rounded-full text-primary-100">✓ {tag}</span>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -221,7 +210,7 @@ export default function Premium() {
           </div>
         )}
 
-        <div id="plans-anchor" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
           {PLANS.map((plan) => (
             <div key={plan.id} className={`relative bg-white dark:bg-gray-800 rounded-2xl flex flex-col ${plan.accent ? 'border-2 border-primary-500 shadow-xl' : 'border border-gray-200 dark:border-gray-700'}`}>
               {plan.badge && <span className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs px-4 py-1 rounded-full font-semibold ${plan.accent ? 'bg-primary-600 text-white' : 'bg-purple-600 text-white'}`}>{plan.badge}</span>}
@@ -244,7 +233,7 @@ export default function Premium() {
                     </li>
                   ))}
                 </ul>
-                <button onClick={() => handleUpgrade(plan.id)} disabled={plan.disabled || loading || (isPremium && plan.id === user?.tier)} className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${plan.disabled || (isPremium && plan.id === user?.tier) ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default' : plan.accent ? 'bg-primary-600 hover:bg-primary-700 text-white' : plan.id === 'premium-annual' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-default'}`}>
+                <button onClick={() => handleUpgrade(plan.id)} disabled={plan.disabled || loading || (isPremium && plan.id === user?.tier)} className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${plan.disabled || (isPremium && plan.id === user?.tier) ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default' : plan.accent ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}>
                   {loadingPlan === plan.id ? (<><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Processing…</>) : isPremium && plan.id === user?.tier ? ('✓ Active Plan') : (plan.cta)}
                 </button>
               </div>
@@ -252,15 +241,13 @@ export default function Premium() {
           ))}
         </div>
 
-        {/* Perks Grid */}
         <div className="mb-20">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Everything you unlock</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm max-w-lg mx-auto">Built specifically for African job seekers competing locally and globally.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {PERKS.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 flex gap-4 hover:border-primary-200 dark:hover:border-primary-700 transition">
+              <div key={title} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 flex gap-4">
                 <div className="w-10 h-10 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 flex-shrink-0"><Icon size={20} /></div>
                 <div><h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">{title}</h3><p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{desc}</p></div>
               </div>
@@ -268,7 +255,6 @@ export default function Premium() {
           </div>
         </div>
 
-        {/* FAQ */}
         <div className="max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-8">Common questions</h2>
           <div className="space-y-3">
@@ -276,7 +262,6 @@ export default function Premium() {
               <div key={q} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
                 <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between px-5 py-4 text-left gap-3">
                   <span className="font-semibold text-gray-900 dark:text-white text-sm">{q}</span>
-                  <span className={`text-gray-400 transition-transform ${openFaq === i ? 'rotate-45' : ''}`}><FiZap size={14} /></span>
                 </button>
                 {openFaq === i && <div className="px-5 pb-4"><p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{a}</p></div>}
               </div>
