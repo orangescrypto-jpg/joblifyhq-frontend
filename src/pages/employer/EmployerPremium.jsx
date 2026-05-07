@@ -112,7 +112,7 @@ export default function EmployerPremium() {
 
   const handleFlutter = useFlutterwave({
     public_key: FLUTTERWAVE_PUBLIC_KEY,
-    currency: 'USD',
+    currency: 'NGN',
     payment_options: 'card,banktransfer,ussd,mobilemoney',
     customer: {
       email: user?.email || '',
@@ -130,8 +130,8 @@ export default function EmployerPremium() {
     if (!user) return navigate('/login');
 
     const plan = PLANS.find(p => p.key === planKey);
-    const amount = billing === 'monthly' ? plan.monthlyPrice : plan.annualPrice;
-    const days = billing === 'monthly' ? 30 : 365;
+    const amount = billing === 'monthly'? plan.monthlyPrice * 1600 : plan.annualPrice * 1600;
+    const days = billing === 'monthly'? 30 : 365;
 
     setLoadingPlan(planKey);
     setError('');
@@ -139,7 +139,8 @@ export default function EmployerPremium() {
 
     handleFlutter({
       tx_ref: `emp_${user.uid}_${Date.now()}`,
-      amount,
+      amount: Number(amount),
+      currency: 'NGN',
       description: `JoblifyHQ Employer ${plan.name} — ${billing}`,
       callback: async (response) => {
         closePaymentModal();
@@ -190,36 +191,34 @@ export default function EmployerPremium() {
           <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm max-w-md mx-auto font-medium">{success}</div>
         )}
 
-        {/* Billing toggle */}
         <div className="flex items-center justify-center gap-3 mt-6">
-          <span className={`text-sm font-medium ${billing === 'monthly' ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>Monthly</span>
+          <span className={`text-sm font-medium ${billing === 'monthly'? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>Monthly</span>
           <button
-            onClick={() => setBilling(b => b === 'monthly' ? 'annual' : 'monthly')}
-            className={`relative w-12 h-6 rounded-full transition-colors ${billing === 'annual' ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+            onClick={() => setBilling(b => b === 'monthly'? 'annual' : 'monthly')}
+            className={`relative w-12 h-6 rounded-full transition-colors ${billing === 'annual'? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}`}
           >
-            <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${billing === 'annual' ? 'translate-x-6' : ''}`} />
+            <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${billing === 'annual'? 'translate-x-6' : ''}`} />
           </button>
-          <span className={`text-sm font-medium ${billing === 'annual' ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+          <span className={`text-sm font-medium ${billing === 'annual'? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
             Annual <span className="text-green-600 font-semibold text-xs ml-1">Save 20%</span>
           </span>
         </div>
       </div>
 
-      {/* Plans */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         {PLANS.map(plan => {
-          const displayPrice = billing === 'monthly' ? plan.monthlyPrice : Math.round(plan.annualPrice / 12);
+          const displayPrice = billing === 'monthly'? plan.monthlyPrice : Math.round(plan.annualPrice / 12);
           const isCurrentPlan = currentPlan === plan.key;
           return (
-            <div key={plan.key} className={`rounded-2xl border-2 ${plan.color} overflow-hidden shadow-sm ${plan.tag ? 'md:-mt-4 md:shadow-xl' : ''}`}>
-              <div className={`${plan.headerBg} p-6 ${plan.key !== 'basic' ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+            <div key={plan.key} className={`rounded-2xl border-2 ${plan.color} overflow-hidden shadow-sm ${plan.tag? 'md:-mt-4 md:shadow-xl' : ''}`}>
+              <div className={`${plan.headerBg} p-6 ${plan.key!== 'basic'? 'text-white' : 'text-gray-900 dark:text-white'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="text-lg font-bold">{plan.name}</h3>
                   {plan.tag && (
                     <span className="text-xs px-2.5 py-1 bg-white/25 rounded-full font-semibold">{plan.tag}</span>
                   )}
                 </div>
-                {plan.monthlyPrice === 0 ? (
+                {plan.monthlyPrice === 0? (
                   <div className="mt-3">
                     <span className="text-3xl font-black">Free</span>
                     <span className="text-sm ml-1 opacity-70">forever</span>
@@ -242,14 +241,14 @@ export default function EmployerPremium() {
                 <button
                   onClick={() => handleSelect(plan.key)}
                   disabled={isCurrentPlan || plan.key === 'basic' || loadingPlan === plan.key}
-                  className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition mb-6 disabled:opacity-60 ${isCurrentPlan ? 'bg-gray-100 dark:bg-gray-800 text-gray-500' : plan.btnClass}`}
+                  className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition mb-6 disabled:opacity-60 ${isCurrentPlan? 'bg-gray-100 dark:bg-gray-800 text-gray-500' : plan.btnClass}`}
                 >
                   {loadingPlan === plan.key
-                    ? 'Processing...'
+                   ? 'Processing...'
                     : isCurrentPlan
-                      ? 'Current Plan'
+                     ? 'Current Plan'
                       : plan.key === 'basic'
-                        ? 'Free Plan'
+                       ? 'Free Plan'
                         : `Upgrade to ${plan.name}`}
                 </button>
 
@@ -271,7 +270,6 @@ export default function EmployerPremium() {
         })}
       </div>
 
-      {/* Perks */}
       <div>
         <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">Why Employers Choose Premium</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
