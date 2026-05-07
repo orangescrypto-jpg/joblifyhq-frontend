@@ -5,7 +5,7 @@ import { getEmployerJobs } from '../../services/firebase/jobs';
 import { getEmployerScholarships } from '../../services/firebase/scholarships';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { FiPlus, FiTrendingUp, FiUsers, FiClock, FiBriefcase, FiAward, FiEdit2, FiEye } from 'react-icons/fi';
+import { FiPlus, FiTrendingUp, FiUsers, FiClock, FiBriefcase, FiAward, FiEdit2, FiEye, FiZap } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 
 export default function EmployerDashboard() {
@@ -206,15 +206,28 @@ export default function EmployerDashboard() {
         </div>
       </div>
 
-      {/* Promote CTA */}
-      <div className="bg-gradient-to-r from-primary-600 to-purple-600 rounded-xl p-6 text-white">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {/* Premium CTA */}
+      <div className="bg-gradient-to-br from-primary-600 to-purple-700 rounded-xl p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h3 className="text-lg font-semibold">🚀 Boost Your Listing</h3>
-            <p className="text-primary-100 text-sm mt-1">Get 3x more applications by featuring your job on the homepage for just $5.</p>
+            <div className="flex items-center gap-2 mb-1">
+              <FiZap size={18} />
+              <h3 className="text-lg font-bold">Upgrade to Employer Premium</h3>
+            </div>
+            <p className="text-primary-100 text-sm">
+              Get featured listings, full applicant pipeline, analytics dashboard and a verified employer badge.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-3 text-xs">
+              {['⚡ Featured Listings', '📊 Analytics', '✅ Verified Badge', '🔍 Candidate Search'].map(tag => (
+                <span key={tag} className="px-2.5 py-1 bg-white/20 rounded-full">{tag}</span>
+              ))}
+            </div>
           </div>
-          <Link to="/employer/listings" className="bg-white text-primary-600 px-5 py-2.5 rounded-lg font-medium hover:bg-gray-100 transition w-fit">
-            Promote Now
+          <Link
+            to="/employer/premium"
+            className="bg-white text-primary-700 font-bold px-6 py-3 rounded-xl hover:bg-primary-50 transition whitespace-nowrap self-start sm:self-center shrink-0"
+          >
+            See Plans →
           </Link>
         </div>
       </div>
