@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../context/DashboardContext';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { FiBookmark, FiSend, FiBriefcase, FiAward, FiMapPin, FiClock, FiEye, FiUser, FiChevronRight } from 'react-icons/fi';
+import {
+  FiBookmark, FiSend, FiBriefcase, FiAward, FiMapPin, FiClock,
+  FiEye, FiUser, FiChevronRight, FiZap, FiStar, FiBell, FiTrendingUp, FiShield,
+} from 'react-icons/fi';
 
 const STATUS_STYLES = {
   'Interview':     'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
@@ -14,14 +17,24 @@ const STATUS_STYLES = {
   'Rejected':      'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
 };
 
+const PREMIUM_PERKS = [
+  { icon: FiTrendingUp, label: 'Profile Boost' },
+  { icon: FiBell,       label: 'Unlimited Alerts' },
+  { icon: FiEye,        label: 'Profile Views' },
+  { icon: FiShield,     label: 'Application Tracking' },
+  { icon: FiStar,       label: 'Featured Badge' },
+];
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { savedJobs, savedScholarships, applications, loading } = useDashboard();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [profileViews, setProfileViews] = useState(0);
   const [viewsLoading, setViewsLoading] = useState(true);
 
-  // Fetch live profile views from Firestore
+  const isPremium = user?.tier === 'premium' || user?.tier === 'premium-annual';
+
   useEffect(() => {
     if (!user?.uid) { setViewsLoading(false); return; }
     const fetchViews = async () => {
@@ -31,7 +44,6 @@ export default function Dashboard() {
         );
         setProfileViews(snap.size);
       } catch {
-        // Fallback: count unique job detail views from applications
         setProfileViews(applications.length * 3);
       } finally {
         setViewsLoading(false);
@@ -39,6 +51,8 @@ export default function Dashboard() {
     };
     fetchViews();
   }, [user, applications]);
+
+  const TABS = ['overview', 'saved', 'applications', 'profile', 'premium'];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-12">
@@ -48,13 +62,30 @@ export default function Dashboard() {
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Welcome back, {user?.name?.split(' ')[0] || 'User'}
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Welcome back, {user?.name?.split(' ')[0] || 'User'}
+                </h1>
+                {isPremium && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full font-semibold border border-primary-200 dark:border-primary-700">
+                    <FiZap size={11} /> Premium
+                  </span>
+                )}
+              </div>
               <p className="text-gray-500 dark:text-gray-400 mt-1">Your career dashboard</p>
             </div>
-            <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center text-xl font-bold text-primary-600 dark:text-primary-400">
-              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            <div className="flex items-center gap-3">
+              {!isPremium && (
+                <button
+                  onClick={() => navigate('/premium')}
+                  className="hidden sm:inline-flex items-center gap-1.5 text-xs px-3 py-2 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-lg font-semibold hover:opacity-90 transition"
+                >
+                  <FiZap size={11} /> Upgrade to Premium
+                </button>
+              )}
+              <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center text-xl font-bold text-primary-600 dark:text-primary-400">
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              </div>
             </div>
           </div>
         </div>
@@ -62,7 +93,7 @@ export default function Dashboard() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
 
-        {/* Stats Grid — all live from Firebase */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
@@ -83,25 +114,59 @@ export default function Dashboard() {
             <p className="text-sm text-gray-500 dark:text-gray-400">Scholarships</p>
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-              {viewsLoading ? '—' : profileViews}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Views</p>
+            {isPremium ? (
+              <>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                  {viewsLoading ? '—' : profileViews}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Profile Views</p>
+              </>
+            ) : (
+              <button
+                onClick={() => navigate('/premium')}
+                className="w-full h-full flex flex-col items-start justify-center text-left"
+              >
+                <p className="text-3xl font-bold text-gray-300 dark:text-gray-600 mb-1">—</p>
+                <p className="text-xs text-primary-600 font-medium flex items-center gap-1">
+                  <FiZap size={10} /> Unlock with Premium
+                </p>
+              </button>
+            )}
           </div>
         </div>
 
+        {/* Free → Premium Banner */}
+        {!isPremium && (
+          <div className="mb-8 bg-gradient-to-r from-primary-600 to-purple-600 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-white">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <FiZap size={16} />
+                <span className="font-bold text-sm">Upgrade to JoblifyHQ Premium</span>
+              </div>
+              <p className="text-primary-100 text-sm">Profile boost, unlimited alerts, view who checked your profile and more.</p>
+            </div>
+            <button
+              onClick={() => navigate('/premium')}
+              className="bg-white text-primary-700 font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-primary-50 transition whitespace-nowrap self-start sm:self-center"
+            >
+              See Plans →
+            </button>
+          </div>
+        )}
+
         {/* Tab Navigation */}
         <div className="flex gap-6 border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto">
-          {['overview', 'saved', 'applications', 'profile'].map(tab => (
+          {TABS.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-3 text-sm font-medium capitalize whitespace-nowrap transition ${
+              className={`pb-3 text-sm font-medium capitalize whitespace-nowrap transition flex items-center gap-1.5 ${
                 activeTab === tab
                   ? 'text-primary-600 border-b-2 border-primary-600'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
+              {tab === 'premium' && <FiZap size={13} />}
               {tab}
             </button>
           ))}
@@ -110,7 +175,6 @@ export default function Dashboard() {
         {/* ── OVERVIEW TAB ── */}
         {activeTab === 'overview' && (
           <div className="space-y-8">
-
             {/* Saved Jobs */}
             <section>
               <div className="flex items-center justify-between mb-4">
@@ -217,7 +281,6 @@ export default function Dashboard() {
               )}
             </section>
 
-            {/* Saved Scholarships teaser */}
             {savedScholarships.length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
@@ -259,7 +322,6 @@ export default function Dashboard() {
         {/* ── SAVED TAB ── */}
         {activeTab === 'saved' && (
           <div className="space-y-6">
-            {/* Saved Jobs */}
             <section>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <FiBriefcase className="text-primary-600" /> Saved Jobs ({savedJobs.length})
@@ -291,7 +353,6 @@ export default function Dashboard() {
               )}
             </section>
 
-            {/* Saved Scholarships */}
             <section>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <FiAward className="text-purple-600" /> Saved Scholarships ({savedScholarships.length})
@@ -369,11 +430,25 @@ export default function Dashboard() {
         {activeTab === 'profile' && (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100 dark:border-gray-700">
-              <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center text-2xl font-bold text-primary-600">
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              <div className="relative">
+                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center text-2xl font-bold text-primary-600">
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                {isPremium && (
+                  <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary-600 rounded-full flex items-center justify-center">
+                    <FiZap size={11} className="text-white" />
+                  </span>
+                )}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{user?.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{user?.name}</h3>
+                  {isPremium && (
+                    <span className="text-xs px-2 py-0.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full font-semibold">
+                      Premium
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
               </div>
             </div>
@@ -389,6 +464,80 @@ export default function Dashboard() {
               </div>
               <button className="btn-primary">Save Changes</button>
             </div>
+          </div>
+        )}
+
+        {/* ── PREMIUM TAB ── */}
+        {activeTab === 'premium' && (
+          <div className="space-y-8">
+            {isPremium ? (
+              <>
+                {/* Active premium status */}
+                <div className="bg-gradient-to-br from-primary-600 to-purple-700 rounded-2xl p-6 text-white">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                      <FiZap size={22} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold">Premium Active</h2>
+                      <p className="text-primary-100 text-sm capitalize">{user?.tier?.replace('-', ' ')} plan</p>
+                    </div>
+                  </div>
+                  <p className="text-primary-100 text-sm">You have full access to all premium features. Keep applying and stay ahead!</p>
+                </div>
+
+                {/* Perks list */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Your active perks</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {PREMIUM_PERKS.map(({ icon: Icon, label }) => (
+                      <div key={label} className="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4">
+                        <div className="w-9 h-9 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-green-600 flex-shrink-0">
+                          <Icon size={17} />
+                        </div>
+                        <span className="font-medium text-gray-900 dark:text-white text-sm">{label}</span>
+                        <span className="ml-auto text-xs text-green-600 font-semibold">Active</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Upgrade CTA */}
+                <div className="bg-gradient-to-br from-primary-600 to-purple-700 rounded-2xl p-6 text-white text-center">
+                  <FiZap size={36} className="mx-auto mb-3 opacity-90" />
+                  <h2 className="text-2xl font-bold mb-2">Unlock Premium Features</h2>
+                  <p className="text-primary-100 mb-5 text-sm max-w-md mx-auto">
+                    Stand out to employers, get unlimited job alerts, see who views your profile and more — from ₦2,500/month.
+                  </p>
+                  <button
+                    onClick={() => navigate('/premium')}
+                    className="bg-white text-primary-700 font-bold px-8 py-3 rounded-xl hover:bg-primary-50 transition"
+                  >
+                    View Premium Plans →
+                  </button>
+                </div>
+
+                {/* Locked perks */}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Features you're missing</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {PREMIUM_PERKS.map(({ icon: Icon, label }) => (
+                      <div key={label} className="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 opacity-60">
+                        <div className="w-9 h-9 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-400 flex-shrink-0">
+                          <Icon size={17} />
+                        </div>
+                        <span className="font-medium text-gray-900 dark:text-white text-sm">{label}</span>
+                        <span className="ml-auto text-xs text-primary-600 font-semibold flex items-center gap-1">
+                          <FiZap size={10} /> Premium
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
