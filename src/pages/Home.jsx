@@ -37,22 +37,15 @@ export default function Home() {
           ? jobsResult
           : (jobsResult?.jobs || []);
 
-        // Featured = only boosted jobs (isFeatured === true), max 5
         const featured = jobsArray
           .filter(j => j.isFeatured === true)
           .slice(0, 5);
 
-        // Latest = most recent 3 jobs by createdAt (any job, boosted or not)
-        // sorted newest first — Firebase already returns newest first
         const latest = jobsArray.slice(0, 3);
 
         setFeaturedJobs(featured);
         setLatestJobs(latest);
-
-        // Scholarships — latest 5, no featured filter
         setScholarships((scholarshipsData || []).slice(0, 5));
-
-        // Blog — latest 10
         setBlogs((blogsData || []).slice(0, 10));
 
       } catch (error) {
@@ -89,7 +82,7 @@ export default function Home() {
     <>
       <Hero />
 
-      {/* ── Featured Jobs (boosted only, max 5) ── */}
+      {/* ── Featured Jobs ── */}
       {(loading || featuredJobs.length > 0) && (
         <Section
           title="Featured Jobs"
@@ -101,7 +94,7 @@ export default function Home() {
         </Section>
       )}
 
-      {/* ── Latest Jobs (newest 3 posts, with active hiring badge if within 7 days) ── */}
+      {/* ── Latest Jobs ── */}
       <Section
         title="Latest Jobs"
         link="/jobs"
@@ -117,7 +110,33 @@ export default function Home() {
         {latestJobs.map(j => <JobCard key={j.id} job={j} />)}
       </Section>
 
-      {/* ── Latest Scholarships (5) ── */}
+      {/* ── Global Remote CTA ── */}
+      <div className="mb-14">
+        <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 rounded-2xl p-8 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <div className="text-blue-200 text-xs font-semibold uppercase tracking-wide mb-2">
+              🌍 Global Remote Jobs
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Get Hired by a US Company from Lagos.</h2>
+            <p className="text-blue-100 max-w-xl text-sm">
+              International companies actively hiring Nigerian & African talent — work remotely, earn in dollars, build a global career.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-4 text-xs">
+              {['🇺🇸 US Companies', '🇬🇧 UK Companies', '💰 Dollar Salaries', '🌍 Work from Africa'].map(tag => (
+                <span key={tag} className="px-3 py-1 bg-white/20 rounded-full">{tag}</span>
+              ))}
+            </div>
+          </div>
+          <Link
+            to="/remote-jobs"
+            className="bg-white text-blue-700 font-bold px-6 py-3 rounded-xl hover:bg-blue-50 transition whitespace-nowrap self-start md:self-center"
+          >
+            Browse Remote Jobs →
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Latest Scholarships ── */}
       <Section
         title="Latest Scholarships"
         link="/scholarships"
@@ -150,7 +169,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Latest Blog Posts (10) ── */}
+      {/* ── Latest Blog Posts ── */}
       <Section
         title="Recent Articles"
         link="/blog"
