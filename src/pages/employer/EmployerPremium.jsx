@@ -34,8 +34,8 @@ const PLANS = [
     key: 'growth',
     name: 'Growth',
     tag: 'Most Popular',
-    monthlyPrice: 15000,
-    annualPrice: 144000,
+    monthlyPrice: 15,
+    annualPrice: 144,
     color: 'border-primary-500',
     headerBg: 'bg-gradient-to-br from-primary-600 to-primary-700',
     btnClass: 'bg-primary-600 hover:bg-primary-700 text-white',
@@ -60,8 +60,8 @@ const PLANS = [
     key: 'enterprise',
     name: 'Enterprise',
     tag: 'Best Value',
-    monthlyPrice: 45000,
-    annualPrice: 432000,
+    monthlyPrice: 30,
+    annualPrice: 288,
     color: 'border-purple-500',
     headerBg: 'bg-gradient-to-br from-purple-600 to-indigo-700',
     btnClass: 'bg-purple-600 hover:bg-purple-700 text-white',
@@ -93,7 +93,7 @@ const PERKS = [
 ];
 
 function fmt(n) {
-  return `₦${n.toLocaleString()}`;
+  return `$${n.toLocaleString()}`;
 }
 
 export default function EmployerPremium() {
