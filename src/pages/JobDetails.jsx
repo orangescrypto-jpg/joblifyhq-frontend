@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FiMapPin, FiClock, FiDollarSign, FiBookmark, FiExternalLink, FiCalendar, FiSend, FiMail, FiUsers, FiGlobe } from 'react-icons/fi';
 import { getJobById, getJobs, createReferral } from '../services/firebase/jobs';
 import { useAuth } from '../context/AuthContext';
@@ -155,7 +155,12 @@ export default function JobDetails() {
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">{job.title}</h1>
-              <p className="text-lg text-primary-600 font-medium mt-1">{job.company}</p>
+              <Link
+                to={`/employers/${encodeURIComponent(job.company)}`}
+                className="text-lg text-primary-600 font-medium mt-1 hover:underline inline-block"
+              >
+                {job.company}
+              </Link>
             </div>
             <button
               onClick={() => user ? toggleSaveJob(job) : navigate('/login')}
