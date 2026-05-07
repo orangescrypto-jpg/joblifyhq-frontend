@@ -15,6 +15,8 @@ import Students from '../pages/Students';
 import PrivacyPolicy from '../pages/PrivacyPolicy';
 import TermsConditions from '../pages/TermsConditions';
 import Contact from '../pages/Contact';
+import EmployerProfile from '../pages/EmployerProfile';
+import GlobalRemoteJobs from '../pages/GlobalRemoteJobs';
 
 // 🔐 Auth Pages
 import Login from '../pages/Login';
@@ -51,8 +53,6 @@ const ProtectedRoute = ({ children, roleRequired }) => {
   return children;
 };
 
-const MainPage = ({ children }) => <MainLayout>{children}</MainLayout>;
-
 export default function AppRoutes() {
   return (
     <Routes>
@@ -61,6 +61,8 @@ export default function AppRoutes() {
         <Route index element={<Home />} />
         <Route path="jobs" element={<Jobs />} />
         <Route path="jobs/:id" element={<JobDetails />} />
+        <Route path="remote-jobs" element={<GlobalRemoteJobs />} />
+        <Route path="employers/:company" element={<EmployerProfile />} />
         <Route path="scholarships" element={<Scholarships />} />
         <Route path="scholarships/:id" element={<ScholarshipDetails />} />
         <Route path="blog" element={<Blog />} />
