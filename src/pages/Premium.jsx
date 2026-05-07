@@ -105,17 +105,17 @@ const FAQS = [
 export default function Premium() {
   const { user, updateUserProfile } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [loadingPlan, setLoadingPlan] = useState('');
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
-  const [openFaq, setOpenFaq] = useState(null);
+  const [loading][setLoading] = useState(false);
+  const [loadingPlan][setLoadingPlan] = useState('');
+  const [success][setSuccess] = useState('');
+  const [error][setError] = useState('');
+  const [openFaq][setOpenFaq] = useState(null);
 
   const isPremium = user?.tier === 'premium' || user?.tier === 'premium-annual';
 
   const handleFlutterPayment = useFlutterwave({
     public_key: FLUTTERWAVE_PUBLIC_KEY,
-    currency: 'USD',
+    currency: 'NGN',
     payment_options: 'card,mobilemoney,ussd,banktransfer',
     customer: {
       email: user?.email || '',
@@ -137,13 +137,14 @@ export default function Premium() {
     setError('');
     setSuccess('');
 
-    const amount = planId === 'premium' ? 4 : 40;
-    const days = planId === 'premium' ? 30 : 365;
+    const amount = planId === 'premium'? 6400 : 64000;
+    const days = planId === 'premium'? 30 : 365;
 
     handleFlutterPayment({
       tx_ref: `joblify_${user.uid}_${Date.now()}`,
-      amount,
-      description: planId === 'premium' ? 'Monthly Premium - $4' : 'Annual Premium - $40',
+      amount: Number(amount),
+      currency: 'NGN',
+      description: planId === 'premium'? 'Monthly Premium - ₦6,400' : 'Annual Premium - ₦64,000',
       callback: async (response) => {
         closePaymentModal();
         if (response.status === 'successful' || response.status === 'completed') {
@@ -163,13 +164,13 @@ export default function Premium() {
             }
             setSuccess(
               planId === 'premium-annual'
-                ? "You're now on the Annual Premium plan! Welcome to the top tier. 🎉"
+               ? "You're now on the Annual Premium plan! Welcome to the top tier. 🎉"
                 : "You're now a Premium member! Your profile boost is live. 🚀"
             );
             setTimeout(() => navigate('/dashboard'), 2000);
           } catch (err) {
             console.error(err);
-            setError('Payment succeeded but update failed. Please contact support with your transaction ID: ' + response.transaction_id);
+            setError('Payment succeeded but update failed. Contact support.');
           }
         } else {
           setError('Payment was not completed. Please try again.');
@@ -186,7 +187,6 @@ export default function Premium() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
-      {/* Hero */}
       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-purple-700 text-white py-16 px-4 text-center">
         <div className="max-w-2xl mx-auto">
           <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/20 rounded-full font-semibold mb-5 tracking-wide">
@@ -201,14 +201,10 @@ export default function Premium() {
 
       <div className="max-w-5xl mx-auto px-4 py-12">
         {success && (
-          <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm text-center font-medium">
-            {success}
-          </div>
+          <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm text-center">{success}</div>
         )}
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm text-center">
-            {error}
-          </div>
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm text-center">{error}</div>
         )}
 
         {isPremium && (
@@ -219,7 +215,7 @@ export default function Premium() {
             <div>
               <p className="font-semibold text-primary-800 dark:text-primary-200">You're already a Premium member!</p>
               <p className="text-sm text-primary-600 dark:text-primary-400 mt-0.5 capitalize">
-                Active plan: {user?.tier === 'premium-annual' ? 'Annual Premium' : 'Monthly Premium'}
+                Active plan: {user?.tier === 'premium-annual'? 'Annual Premium' : 'Monthly Premium'}
               </p>
             </div>
             <button
@@ -231,15 +227,14 @@ export default function Premium() {
           </div>
         )}
 
-        {/* Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
           {PLANS.map((plan) => (
             <div
               key={plan.id}
-              className={`relative bg-white dark:bg-gray-800 rounded-2xl flex flex-col ${plan.accent ? 'border-2 border-primary-500 shadow-xl' : 'border border-gray-200 dark:border-gray-700'}`}
+              className={`relative bg-white dark:bg-gray-800 rounded-2xl flex flex-col ${plan.accent? 'border-2 border-primary-500 shadow-xl' : 'border border-gray-200 dark:border-gray-700'}`}
             >
               {plan.badge && (
-                <span className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs px-4 py-1 rounded-full font-semibold whitespace-nowrap ${plan.accent ? 'bg-primary-600 text-white' : 'bg-purple-600 text-white'}`}>
+                <span className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs px-4 py-1 rounded-full font-semibold whitespace-nowrap ${plan.accent? 'bg-primary-600 text-white' : 'bg-purple-600 text-white'}`}>
                   {plan.badge}
                 </span>
               )}
@@ -261,9 +256,9 @@ export default function Premium() {
 
                 <ul className="space-y-2.5 mb-6 flex-1">
                   {plan.features.map((f) => (
-                    <li key={f.text} className={`flex items-start gap-2.5 text-sm ${f.included ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600'}`}>
+                    <li key={f.text} className={`flex items-start gap-2.5 text-sm ${f.included? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600'}`}>
                       {f.included
-                        ? <FiCheck className="text-green-500 flex-shrink-0 mt-0.5" size={15} />
+                       ? <FiCheck className="text-green-500 flex-shrink-0 mt-0.5" size={15} />
                         : <FiX className="text-gray-300 dark:text-gray-600 flex-shrink-0 mt-0.5" size={15} />
                       }
                       {f.text}
@@ -276,18 +271,18 @@ export default function Premium() {
                   disabled={plan.disabled || loading || (isPremium && plan.id === user?.tier)}
                   className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${
                     plan.disabled || (isPremium && plan.id === user?.tier)
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default'
+                     ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default'
                       : plan.accent
-                        ? 'bg-primary-600 hover:bg-primary-700 text-white'
+                       ? 'bg-primary-600 hover:bg-primary-700 text-white'
                         : 'bg-purple-600 hover:bg-purple-700 text-white'
                   }`}
                 >
-                  {loadingPlan === plan.id ? (
+                  {loadingPlan === plan.id? (
                     <>
                       <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                       Processing…
                     </>
-                  ) : isPremium && plan.id === user?.tier ? (
+                  ) : isPremium && plan.id === user?.tier? (
                     '✓ Active Plan'
                   ) : (
                     plan.cta
@@ -298,7 +293,6 @@ export default function Premium() {
           ))}
         </div>
 
-        {/* Perks */}
         <div className="mb-20">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Everything you unlock</h2>
@@ -318,18 +312,17 @@ export default function Premium() {
           </div>
         </div>
 
-        {/* FAQs */}
         <div className="max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-8">Common questions</h2>
           <div className="space-y-3">
             {FAQS.map(({ q, a }, i) => (
               <div key={q} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
                 <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  onClick={() => setOpenFaq(openFaq === i? null : i)}
                   className="w-full flex items-center justify-between px-5 py-4 text-left gap-3"
                 >
                   <span className="font-semibold text-gray-900 dark:text-white text-sm">{q}</span>
-                  <span className="text-gray-400 flex-shrink-0">{openFaq === i ? '−' : '+'}</span>
+                  <span className="text-gray-400 flex-shrink-0">{openFaq === i? '−' : '+'}</span>
                 </button>
                 {openFaq === i && (
                   <div className="px-5 pb-4">
