@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import {
   FiCheck, FiZap, FiStar, FiShield, FiBell,
@@ -39,6 +39,7 @@ const PLANS = [
     period: 'per month',
     description: 'For active job seekers who want to stand out and move faster.',
     badge: 'Most Popular',
+    localHint: '≈ ₦6,400 • KES 520 • GHS 62',
     features: [
       { text: 'Everything in Free', included: true },
       { text: 'Unlimited saved jobs & scholarships', included: true },
@@ -63,6 +64,7 @@ const PLANS = [
     subtext: 'equivalent to $3.33/mo',
     description: 'Best value for serious career builders. Save $8 vs monthly.',
     badge: 'Save $8',
+    localHint: '≈ ₦64,000 • KES 5,200 • GHS 620',
     features: [
       { text: 'Everything in Premium', included: true },
       { text: 'Featured applicant badge on applications', included: true },
@@ -91,9 +93,9 @@ const PERKS = [
 ];
 
 const FAQS = [
-  { q: 'How do I pay?', a: 'Payment is processed securely via Flutterwave — cards, USSD, bank transfer, and mobile money all supported.' },
+  { q: 'How do I pay?', a: 'Payment is processed securely via Flutterwave — cards, USSD, bank transfer, and mobile money all supported. Prices are in USD, Flutterwave auto-converts to your local currency.' },
   { q: 'Can I cancel anytime?', a: 'Yes. Cancel before your next billing date and your Premium access continues until the end of the period. No penalties.' },
-  { q: 'What currency are prices in?', a: 'All prices are in US Dollars ($). Flutterwave will convert to your local currency at checkout.' },
+  { q: 'What currency are prices in?', a: 'All prices are in US Dollars ($). Flutterwave will convert to NGN, KES, GHS, ZAR, etc. at checkout.' },
   { q: 'What is profile boost?', a: 'Your profile appears higher in employer search results and application lists on JoblifyHQ, increasing your chances of being noticed without extra effort.' },
   { q: 'What does the expert CV review include?', a: 'A career professional reviews your CV and gives written feedback on structure, keywords, ATS-compatibility, and presentation. Available once per year on the Annual plan.' },
   { q: 'Is my payment information safe?', a: 'Yes. We never store card details. All transactions go through PCI-compliant Flutterwave. Your personal data is secured on Firebase and never sold.' },
@@ -142,11 +144,12 @@ export default function Premium() {
     setSuccess('');
 
     const amount = planId === 'premium' ? 4 : 40;
+    const days = planId === 'premium' ? 30 : 365;
 
     handleFlutterPayment({
       tx_ref: `joblify_${user.uid}_${Date.now()}`,
       amount,
-      description: planId === 'premium' ? 'Monthly Premium' : 'Annual Premium',
+      description: planId === 'premium' ? 'Monthly Premium - $4' : 'Annual Premium - $40',
       callback: async (response) => {
         closePaymentModal();
         if (response.status === 'successful' || response.status === 'completed') {
@@ -154,6 +157,7 @@ export default function Premium() {
             await updateDoc(doc(db, 'users', user.uid), {
               tier: planId,
               premiumSince: serverTimestamp(),
+              premiumExpiresAt: Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000)),
               premiumPlan: planId,
               flwTransactionId: response.transaction_id,
               updatedAt: serverTimestamp(),
@@ -166,6 +170,7 @@ export default function Premium() {
             );
             setTimeout(() => navigate('/dashboard'), 2000);
           } catch (err) {
+            console.error(err);
             setError('Payment succeeded but update failed. Contact support.');
           }
         } else {
@@ -223,30 +228,61 @@ export default function Premium() {
               <div className="p-6 flex flex-col flex-1">
                 <div className="mb-5">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-white">{plan.name}</h2>
-                  <p className="text-xs text-gray-500 mt-1">{plan.description}</p>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">{plan.description}</p>
                   <div className="flex items-baseline gap-1 mt-3">
-                    <span className="text-4xl font-bold">{plan.price}</span>
-                    <span className="text-sm text-gray-500">/{plan.period}</span>
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">{plan.price}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">/{plan.period}</span>
                   </div>
-                  {plan.subtext && <p className="text-xs text-primary-600 mt-1 font-medium">{plan.subtext}</p>}
+                  {plan.subtext && <p className="text-xs text-primary-600 dark:text-primary-400 mt-1 font-medium">{plan.subtext}</p>}
+                  {plan.localHint && <p className="text- text-gray-400 mt-1">{plan.localHint}</p>}
                 </div>
                 <ul className="space-y-2.5 mb-6 flex-1">
                   {plan.features.map((f) => (
-                    <li key={f.text} className={`flex items-start gap-2.5 text-sm ${f.included ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'}`}>
-                      {f.included ? <FiCheck className="text-green-500 mt-0.5" size={15} /> : <FiX className="text-gray-300 mt-0.5" size={15} />}
+                    <li key={f.text} className={`flex items-start gap-2.5 text-sm ${f.included ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600'}`}>
+                      {f.included ? <FiCheck className="text-green-500 flex-shrink-0 mt-0.5" size={15} /> : <FiX className="text-gray-300 dark:text-gray-600 flex-shrink-0 mt-0.5" size={15} />}
                       {f.text}
                     </li>
                   ))}
                 </ul>
-                <button onClick={() => handleUpgrade(plan.id)} disabled={plan.disabled || loading || (isPremium && plan.id === user?.tier)} className={`w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 ${plan.disabled || (isPremium && plan.id === user?.tier) ? 'bg-gray-100 text-gray-400' : plan.accent ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}>
-                  {loadingPlan === plan.id ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Processing…</> : isPremium && plan.id === user?.tier ? '✓ Active Plan' : plan.cta}
+                <button onClick={() => handleUpgrade(plan.id)} disabled={plan.disabled || loading || (isPremium && plan.id === user?.tier)} className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${plan.disabled || (isPremium && plan.id === user?.tier) ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default' : plan.accent ? 'bg-primary-600 hover:bg-primary-700 text-white' : plan.id === 'premium-annual' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-default'}`}>
+                  {loadingPlan === plan.id ? (<><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Processing…</>) : isPremium && plan.id === user?.tier ? ('✓ Active Plan') : (plan.cta)}
                 </button>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Perks, FAQ etc. keep your existing code below */}
+        {/* Perks Grid */}
+        <div className="mb-20">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Everything you unlock</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm max-w-lg mx-auto">Built specifically for African job seekers competing locally and globally.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {PERKS.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 flex gap-4 hover:border-primary-200 dark:hover:border-primary-700 transition">
+                <div className="w-10 h-10 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 flex-shrink-0"><Icon size={20} /></div>
+                <div><h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">{title}</h3><p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{desc}</p></div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQ */}
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-8">Common questions</h2>
+          <div className="space-y-3">
+            {FAQS.map(({ q, a }, i) => (
+              <div key={q} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between px-5 py-4 text-left gap-3">
+                  <span className="font-semibold text-gray-900 dark:text-white text-sm">{q}</span>
+                  <span className={`text-gray-400 transition-transform ${openFaq === i ? 'rotate-45' : ''}`}><FiZap size={14} /></span>
+                </button>
+                {openFaq === i && <div className="px-5 pb-4"><p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{a}</p></div>}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
