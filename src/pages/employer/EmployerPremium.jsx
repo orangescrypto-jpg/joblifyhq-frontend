@@ -4,8 +4,8 @@ import { doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config'
 import { FLUTTERWAVE_PUBLIC_KEY } from '../../config/payments'
 import {
-  FiCheck, FiZap, FiStar, FiShield, FiBell,
-  FiEye, FiFileText, FiTrendingUp, FiX,
+  FiCheck, FiZap, FiStar, FiShield, FiUsers,
+  FiEye, FiTrendingUp, FiAward, FiX,
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,90 +15,87 @@ const PLANS = [
     name: 'Free',
     price: '$0',
     period: 'forever',
-    description: 'Get started exploring jobs and scholarships across Africa.',
+    description: 'Post jobs and find talent across Africa.',
     features: [
-      { text: 'Browse all jobs & scholarships', included: true },
-      { text: 'Save up to 5 jobs', included: true },
-      { text: 'Apply to jobs', included: true },
-      { text: '1 job alert', included: true },
-      { text: 'Basic profile', included: true },
-      { text: 'Profile boost in employer search', included: false },
-      { text: 'See who viewed your profile', included: false },
-      { text: 'Unlimited job alerts', included: false },
-      { text: 'Application status tracking', included: false },
-      { text: 'Featured applicant badge', included: false },
+      { text: 'Up to 3 active job listings', included: true },
+      { text: 'Basic applicant management', included: true },
+      { text: 'Standard listing placement', included: true },
+      { text: 'Email notifications', included: true },
+      { text: 'Public company profile', included: true },
+      { text: 'Featured listings', included: false },
+      { text: 'Candidate search database', included: false },
+      { text: 'Analytics dashboard', included: false },
+      { text: 'Actively Hiring badge', included: false },
+      { text: 'Priority support', included: false },
     ],
-    cta: 'Current Free Plan',
+    cta: 'Current Plan',
     disabled: true,
     accent: false,
   },
   {
     id: 'premium',
-    name: 'Premium',
-    price: '$4',
+    name: 'Growth',
+    price: '$10',
     period: 'per month',
-    description: 'For active job seekers who want to stand out and move faster.',
+    description: 'For growing teams who want more visibility.',
     badge: 'Most Popular',
-    localHint: '≈ ₦6,400 • KES 520 • GHS 62',
+    localHint: '≈ ₦16,000 • KES 1,300 • GHS 155',
     features: [
-      { text: 'Everything in Free', included: true },
-      { text: 'Unlimited saved jobs & scholarships', included: true },
-      { text: 'Profile boost in employer search', included: true },
-      { text: 'See who viewed your profile', included: true },
-      { text: 'Unlimited job alerts', included: true },
-      { text: 'Application status tracking', included: true },
-      { text: 'Priority support', included: true },
-      { text: 'Early access to new features', included: true },
-      { text: 'Featured applicant badge', included: false },
-      { text: 'Expert CV review (1×/year)', included: false },
+      { text: '15 active job listings', included: true },
+      { text: '2 featured listings per month', included: true },
+      { text: 'Full applicant management', included: true },
+      { text: 'Kanban pipeline board', included: true },
+      { text: 'Analytics dashboard', included: true },
+      { text: 'Actively Hiring badge', included: true },
+      { text: 'Priority email support', included: true },
+      { text: 'Export applicants (CSV)', included: true },
+      { text: 'Unlimited listings', included: false },
+      { text: 'Candidate database access', included: false },
     ],
-    cta: 'Upgrade to Premium',
+    cta: 'Upgrade to Growth',
     disabled: false,
     accent: true,
   },
   {
-    id: 'premium-annual',
-    name: 'Annual',
-    price: '$40',
-    period: 'per year',
-    subtext: 'equivalent to $3.33/mo',
-    description: 'Best value for serious career builders. Save $8 vs monthly.',
-    badge: 'Save $8',
-    localHint: '≈ ₦64,000 • KES 5,200 • GHS 620',
+    id: 'pro',
+    name: 'Pro',
+    price: '$30',
+    period: 'per month',
+    description: 'Best for companies hiring at scale.',
+    badge: 'Best Value',
+    localHint: '≈ ₦48,000 • KES 3,900 • GHS 465',
     features: [
-      { text: 'Everything in Premium', included: true },
-      { text: 'Featured applicant badge on applications', included: true },
-      { text: 'Expert CV review (1×/year)', included: true },
-      { text: 'Dedicated career tips newsletter', included: true },
-      { text: 'Locked-in price guarantee', included: true },
-      { text: 'Unlimited saved jobs & scholarships', included: true },
-      { text: 'Profile boost in employer search', included: true },
-      { text: 'See who viewed your profile', included: true },
-      { text: 'Unlimited job alerts', included: true },
-      { text: 'Application status tracking', included: true },
+      { text: 'Unlimited job listings', included: true },
+      { text: 'Unlimited featured listings', included: true },
+      { text: 'Candidate database search', included: true },
+      { text: 'Advanced analytics & reports', included: true },
+      { text: 'Branded company page', included: true },
+      { text: 'Verified Employer badge', included: true },
+      { text: 'Dedicated account manager', included: true },
+      { text: 'API access', included: true },
+      { text: 'White-label job widget', included: true },
+      { text: 'Priority homepage placement', included: true },
     ],
-    cta: 'Get Annual Plan',
+    cta: 'Upgrade to Pro',
     disabled: false,
     accent: false,
   },
 ];
 
 const PERKS = [
-  { icon: FiTrendingUp, title: 'Profile Boost', desc: 'Your profile and applications rank higher when employers search for candidates on JoblifyHQ.' },
-  { icon: FiBell, title: 'Unlimited Job Alerts', desc: 'Get notified the moment a job matching your skills and location is posted.' },
-  { icon: FiEye, title: 'Profile Views', desc: 'See which employers and recruiters have visited your profile so you know who is interested.' },
-  { icon: FiShield, title: 'Application Tracking', desc: 'Real-time status updates on every application — know exactly where you stand.' },
-  { icon: FiFileText, title: 'Expert CV Review', desc: 'Annual plan includes one human expert CV review to help you craft a standout resume.' },
-  { icon: FiStar, title: 'Featured Badge', desc: 'A Premium badge appears on all your applications, signalling seriousness to employers.' },
+  { icon: FiTrendingUp, title: '3× More Applications', desc: 'Featured listings appear at the top of search and homepage.' },
+  { icon: FiUsers, title: 'Applicant Pipeline', desc: 'Move candidates from Applied → Shortlisted → Hired in one board.' },
+  { icon: FiEye, title: 'Actively Hiring Badge', desc: 'Show job seekers you’re hiring now and get more quality applies.' },
+  { icon: FiShield, title: 'Verified Badge', desc: 'Build trust — verified employers get 40% more applications.' },
+  { icon: FiAward, title: 'Analytics Dashboard', desc: 'Track views, applies, and conversion for every job.' },
+  { icon: FiStar, title: 'Company Branding', desc: 'Custom company page with logo, culture, and all open roles.' },
 ];
 
 const FAQS = [
-  { q: 'How do I pay?', a: 'Payment is processed securely via Flutterwave — cards, USSD, bank transfer, and mobile money all supported. Prices are in USD, Flutterwave auto-converts to your local currency.' },
-  { q: 'Can I cancel anytime?', a: 'Yes. Cancel before your next billing date and your Premium access continues until the end of the period. No penalties.' },
-  { q: 'What currency are prices in?', a: 'All prices are in US Dollars ($). Flutterwave will convert to NGN, KES, GHS, ZAR, etc. at checkout.' },
-  { q: 'What is profile boost?', a: 'Your profile appears higher in employer search results and application lists on JoblifyHQ, increasing your chances of being noticed without extra effort.' },
-  { q: 'What does the expert CV review include?', a: 'A career professional reviews your CV and gives written feedback on structure, keywords, ATS-compatibility, and presentation. Available once per year on the Annual plan.' },
-  { q: 'Is my payment information safe?', a: 'Yes. We never store card details. All transactions go through PCI-compliant Flutterwave. Your personal data is secured on Firebase and never sold.' },
+  { q: 'How do I pay?', a: 'Secure payment via Flutterwave — cards, bank transfer, USSD, mobile money. Charged in NGN, auto-converts from USD.' },
+  { q: 'Can I cancel anytime?', a: 'Yes. Cancel anytime, access remains until end of billing period.' },
+  { q: 'What’s the difference between Growth and Pro?', a: 'Growth gives you 15 jobs and 2 features/month. Pro is unlimited everything plus candidate search and API.' },
+  { q: 'Is my payment safe?', a: 'Yes. Flutterwave is PCI-compliant. We never store card details.' },
 ];
 
 export default function Premium() {
@@ -110,59 +107,57 @@ export default function Premium() {
   const [error, setError] = useState('');
   const [openFaq, setOpenFaq] = useState(null);
 
-  const isPremium = user?.tier === 'premium' || user?.tier === 'premium-annual';
+  const isPremium = user?.employerTier === 'premium' || user?.employerTier === 'pro';
 
   const handleUpgrade = (planId) => {
     if (!user) { navigate('/login'); return; }
     if (planId === 'free') return;
-    if (isPremium && planId === user?.tier) return;
+    if (isPremium && planId === user?.employerTier) return;
 
     setLoading(true);
     setLoadingPlan(planId);
     setError('');
     setSuccess('');
 
-    const amount = planId === 'premium' ? 6400 : 64000;
-    const days = planId === 'premium' ? 30 : 365;
+    const amount = planId === 'premium' ? 16000 : 48000;
+    const days = 30;
 
-    // Use window.FlutterwaveCheckout so amount is passed correctly upfront
     window.FlutterwaveCheckout({
       public_key: FLUTTERWAVE_PUBLIC_KEY,
-      tx_ref: `joblify_${user.uid}_${Date.now()}`,
+      tx_ref: `emp_${user.uid}_${Date.now()}`,
       amount: Number(amount),
       currency: 'NGN',
       payment_options: 'card,mobilemoney,ussd,banktransfer',
       customer: {
         email: user?.email || '',
-        name: user?.displayName || user?.name || 'Joblify User',
+        name: user?.displayName || user?.name || 'Employer',
       },
       customizations: {
-        title: 'JoblifyHQ Premium',
-        description: planId === 'premium' ? 'Monthly Premium - ₦6,400' : 'Annual Premium - ₦64,000',
-        logo: '',
+        title: 'JoblifyHQ Employer',
+        description: planId === 'premium' ? 'Growth Plan - ₦16,000' : 'Pro Plan - ₦48,000',
+        logo: 'https://joblifyhq.com/logo.png',
       },
       callback: async (response) => {
         if (response.status === 'successful' || response.status === 'completed') {
           try {
             await updateDoc(doc(db, 'users', user.uid), {
-              tier: planId,
-              premiumSince: serverTimestamp(),
-              premiumExpiresAt: Timestamp.fromDate(
+              employerTier: planId,
+              employerBilling: 'monthly',
+              subscriptionExpiresAt: Timestamp.fromDate(
                 new Date(Date.now() + days * 24 * 60 * 60 * 1000)
               ),
-              premiumPlan: planId,
               flwTransactionId: response.transaction_id,
               updatedAt: serverTimestamp(),
             });
             if (typeof updateUserProfile === 'function') {
-              await updateUserProfile({ tier: planId });
+              await updateUserProfile({ employerTier: planId });
             }
             setSuccess(
-              planId === 'premium-annual'
-                ? "You're now on the Annual Premium plan! Welcome to the top tier. 🎉"
-                : "You're now a Premium member! Your profile boost is live. 🚀"
+              planId === 'pro'
+                ? "You're now on Pro! Unlimited hiring unlocked. 🎉"
+                : "You're now on Growth! Your jobs will get featured. 🚀"
             );
-            setTimeout(() => navigate('/dashboard'), 2000);
+            setTimeout(() => navigate('/employer'), 2000);
           } catch (err) {
             console.error(err);
             setError('Payment succeeded but profile update failed. Contact support.');
@@ -185,21 +180,21 @@ export default function Premium() {
       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-purple-700 text-white py-16 px-4 text-center">
         <div className="max-w-2xl mx-auto">
           <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/20 rounded-full font-semibold mb-5 tracking-wide">
-            <FiZap size={12} /> JoblifyHQ Premium
+            <FiZap size={12} /> JoblifyHQ Employer
           </span>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">Land your dream job faster</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">Hire faster. Hire better.</h1>
           <p className="text-primary-100 text-lg max-w-xl mx-auto leading-relaxed">
-            Unlock tools that get you noticed by employers, keep you ahead of deadlines, and move your African career forward.
+            Post jobs, get featured, and manage applicants with tools built for African employers.
           </p>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-12">
         {success && (
-          <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm text-center">{success}</div>
+          <div className="mb-8 p-4 bg-green-50 border-green-200 rounded-xl text-green-700 text-sm text-center">{success}</div>
         )}
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm text-center">{error}</div>
+          <div className="mb-8 p-4 bg-red-50 border-red-200 rounded-xl text-red-700 text-sm text-center">{error}</div>
         )}
 
         {isPremium && (
@@ -208,13 +203,13 @@ export default function Premium() {
               <FiStar size={20} />
             </div>
             <div>
-              <p className="font-semibold text-primary-800 dark:text-primary-200">You're already a Premium member!</p>
+              <p className="font-semibold text-primary-800 dark:text-primary-200">You're on a Premium employer plan!</p>
               <p className="text-sm text-primary-600 dark:text-primary-400 mt-0.5 capitalize">
-                Active plan: {user?.tier === 'premium-annual' ? 'Annual Premium' : 'Monthly Premium'}
+                Active plan: {user?.employerTier === 'pro' ? 'Pro' : 'Growth'}
               </p>
             </div>
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/employer')}
               className="ml-auto text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
             >
               Go to Dashboard →
@@ -222,7 +217,6 @@ export default function Premium() {
           </div>
         )}
 
-        {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
           {PLANS.map((plan) => (
             <div
@@ -242,9 +236,6 @@ export default function Premium() {
                     <span className="text-4xl font-bold text-gray-900 dark:text-white">{plan.price}</span>
                     <span className="text-sm text-gray-500 dark:text-gray-400">/{plan.period}</span>
                   </div>
-                  {plan.subtext && (
-                    <p className="text-xs text-primary-600 dark:text-primary-400 mt-1 font-medium">{plan.subtext}</p>
-                  )}
                   {plan.localHint && (
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{plan.localHint}</p>
                   )}
@@ -264,9 +255,9 @@ export default function Premium() {
 
                 <button
                   onClick={() => handleUpgrade(plan.id)}
-                  disabled={plan.disabled || loading || (isPremium && plan.id === user?.tier)}
+                  disabled={plan.disabled || loading || (isPremium && plan.id === user?.employerTier)}
                   className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${
-                    plan.disabled || (isPremium && plan.id === user?.tier)
+                    plan.disabled || (isPremium && plan.id === user?.employerTier)
                       ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default'
                       : plan.accent
                         ? 'bg-primary-600 hover:bg-primary-700 text-white'
@@ -278,7 +269,7 @@ export default function Premium() {
                       <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                       Processing…
                     </>
-                  ) : isPremium && plan.id === user?.tier ? (
+                  ) : isPremium && plan.id === user?.employerTier ? (
                     '✓ Active Plan'
                   ) : (
                     plan.cta
@@ -289,10 +280,9 @@ export default function Premium() {
           ))}
         </div>
 
-        {/* Perks Section */}
         <div className="mb-20">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">Everything you get with Premium</h2>
-          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10">Tools built for serious job seekers across Africa</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">Everything employers get</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10">Tools built to fill roles faster across Africa</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {PERKS.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
@@ -306,7 +296,6 @@ export default function Premium() {
           </div>
         </div>
 
-        {/* FAQ Section */}
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-8">Frequently Asked Questions</h2>
           <div className="space-y-3">
