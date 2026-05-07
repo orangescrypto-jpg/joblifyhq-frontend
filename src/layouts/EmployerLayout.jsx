@@ -1,11 +1,13 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiBriefcase, FiList, FiUsers, FiLogOut, FiPlus } from 'react-icons/fi';
+import { FiBriefcase, FiList, FiUsers, FiLogOut, FiPlus, FiZap } from 'react-icons/fi';
 
 export default function EmployerLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const isPremium = user?.employerTier && user.employerTier !== 'basic';
 
   const handleLogout = async () => {
     try {
@@ -17,10 +19,11 @@ export default function EmployerLayout() {
   };
 
   const navItems = [
-    { path: '/employer', label: 'Overview', icon: <FiBriefcase /> },
-    { path: '/employer/post-job', label: 'Post a Job', icon: <FiPlus /> },
-    { path: '/employer/listings', label: 'My Listings', icon: <FiList /> },
-    { path: '/employer/applications', label: 'Applications', icon: <FiUsers /> },
+    { path: '/employer',              label: 'Overview',      icon: <FiBriefcase /> },
+    { path: '/employer/post-job',     label: 'Post a Job',    icon: <FiPlus /> },
+    { path: '/employer/listings',     label: 'My Listings',   icon: <FiList /> },
+    { path: '/employer/applications', label: 'Applications',  icon: <FiUsers /> },
+    { path: '/employer/premium',      label: 'Premium Plans', icon: <FiZap />, highlight: !isPremium },
   ];
 
   return (
@@ -33,6 +36,19 @@ export default function EmployerLayout() {
             <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-semibold rounded-full">Employer Portal</span>
           </div>
           <div className="flex items-center gap-4">
+            {/* Premium badge in header */}
+            {isPremium ? (
+              <span className="hidden sm:inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full font-semibold border border-primary-200 dark:border-primary-700">
+                <FiZap size={11} /> Premium
+              </span>
+            ) : (
+              <Link
+                to="/employer/premium"
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs px-3 py-2 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-lg font-semibold hover:opacity-90 transition"
+              >
+                <FiZap size={11} /> Upgrade
+              </Link>
+            )}
             <span className="text-sm text-gray-600 dark:text-gray-300 hidden sm:block">{user?.company || user?.name}</span>
             <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 hover:text-red-600 transition">
               <FiLogOut /> Logout
@@ -55,10 +71,18 @@ export default function EmployerLayout() {
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
                         isActive
                           ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                          : item.highlight
+                          ? 'text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'
                           : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
                     >
-                      {item.icon} {item.label}
+                      {item.icon}
+                      <span className="flex-1">{item.label}</span>
+                      {item.highlight && (
+                        <span className="text-xs px-1.5 py-0.5 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-full font-bold">
+                          NEW
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -83,6 +107,23 @@ export default function EmployerLayout() {
                 </div>
               </div>
             </div>
+
+            {/* Premium upsell banner in sidebar */}
+            {!isPremium && (
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="bg-gradient-to-br from-primary-600 to-purple-600 rounded-xl p-4 text-white text-center">
+                  <FiZap size={20} className="mx-auto mb-2" />
+                  <p className="text-xs font-bold mb-1">Get 3× More Applicants</p>
+                  <p className="text-xs text-primary-100 mb-3">Feature your listings and unlock the full hiring pipeline.</p>
+                  <Link
+                    to="/employer/premium"
+                    className="block bg-white text-primary-700 text-xs font-bold py-2 px-3 rounded-lg hover:bg-primary-50 transition"
+                  >
+                    See Premium Plans →
+                  </Link>
+                </div>
+              </div>
+            )}
           </nav>
         </aside>
 
