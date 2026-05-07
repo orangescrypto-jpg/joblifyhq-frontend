@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FiDollarSign, FiMapPin, FiBriefcase, FiTrendingUp, FiSearch } from 'react-icons/fi';
-import { getDocs, collection, query, orderBy } from 'firebase/firestore';
+import { getDocs, collection } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 const AFRICAN_COUNTRIES = [
@@ -73,14 +73,18 @@ export default function SalaryPortal() {
   const [cityFilter, setCityFilter] = useState('');
   const [expFilter, setExpFilter] = useState('');
 
+  // No orderBy — sort in JS to avoid needing a Firestore composite index
   useEffect(() => {
-    getDocs(query(collection(db, 'salary_data'), orderBy('createdAt', 'desc')))
-      .then(snap => setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+    getDocs(collection(db, 'salary_data'))
+      .then(snap => {
+        const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        rows.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setSalaries(rows);
+      })
       .catch(() => setSalaries([]))
       .finally(() => setLoading(false));
   }, []);
 
-  // Reset city when country changes
   const handleCountryChange = (c) => {
     setCountryFilter(c);
     setCityFilter('');
@@ -185,7 +189,6 @@ export default function SalaryPortal() {
             />
           </div>
 
-          {/* City — only shown when a country is selected */}
           {countryFilter && availableCities.length > 0 && (
             <select
               value={cityFilter}
@@ -216,7 +219,6 @@ export default function SalaryPortal() {
           )}
         </div>
 
-        {/* Active filter pills */}
         {hasActiveFilters && (
           <div className="flex flex-wrap gap-2 mt-3">
             {countryFilter && (
@@ -252,7 +254,19 @@ export default function SalaryPortal() {
         <div className="text-center py-20 text-gray-500 dark:text-gray-400">
           <FiDollarSign size={48} className="mx-auto mb-4 opacity-20" />
           <p className="text-lg font-medium mb-1">No salary data found</p>
-          <p className="text-sm">Try adjusting your filters — we're adding new data regularly.</p>
+          <p className="text-sm">
+            {hasActiveFilters
+              ? 'Try adjusting your filters — no records match your current selection.'
+              : "We're adding new data regularly. Check back soon!"}
+          </p>
+          {hasActiveFilters && (
+            <button
+              onClick={() => { setSearch(''); setCountryFilter(''); setCityFilter(''); setExpFilter(''); }}
+              className="mt-4 px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition text-sm"
+            >
+              Clear all filters
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
