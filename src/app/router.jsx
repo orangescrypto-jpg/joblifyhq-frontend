@@ -18,6 +18,7 @@ import Contact from '../pages/Contact';
 import EmployerProfile from '../pages/EmployerProfile';
 import GlobalRemoteJobs from '../pages/GlobalRemoteJobs';
 import Premium from '../pages/Premium';
+import SalaryPortal from '../pages/SalaryPortal';
 
 // 🔐 Auth Pages
 import Login from '../pages/Login';
@@ -73,6 +74,7 @@ export default function AppRoutes() {
         <Route path="terms" element={<TermsConditions />} />
         <Route path="contact" element={<Contact />} />
         <Route path="premium" element={<Premium />} />
+        <Route path="salaries" element={<SalaryPortal />} />
       </Route>
 
       {/* 🔑 Auth Pages */}
