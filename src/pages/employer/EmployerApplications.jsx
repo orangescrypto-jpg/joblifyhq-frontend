@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { FiMail, FiPhone, FiEye, FiX, FiUsers, FiRefreshCw, FiFileText } from 'react-icons/fi';
+import { FiMail, FiPhone, FiEye, FiX, FiUsers, FiRefreshCw, FiFileText, FiZap } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
-import { getEmployerJobs } from '../../services/firebase/jobs';
+import { getEmployerJobs, sortApplicationsByBoost } from '../../services/firebase/jobs';
 import { getEmployerScholarships } from '../../services/firebase/scholarships';
 import { collection, query, where, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -14,6 +14,9 @@ const STATUS_STYLES = {
   Interview: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
   Rejected:  'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
 };
+
+const isPremiumApplicant = (app) =>
+  app.applicantTier === 'premium' || app.applicantTier === 'premium-annual';
 
 export default function EmployerApplications() {
   const { user } = useAuth();
@@ -53,7 +56,6 @@ export default function EmployerApplications() {
       }
 
       const allIds = allListings.map(l => l.id);
-
       const chunks = [];
       for (let i = 0; i < allIds.length; i += 10) {
         chunks.push(allIds.slice(i, i + 10));
@@ -69,8 +71,8 @@ export default function EmployerApplications() {
         allApps = [...allApps, ...snap.docs.map(d => ({ id: d.id, ...d.data() }))];
       }
 
-      allApps.sort((a, b) => (b.appliedAt?.seconds || 0) - (a.appliedAt?.seconds || 0));
-      setApplications(allApps);
+      // ── BOOST SORT: premium applicants float to the top ──
+      setApplications(sortApplicationsByBoost(allApps));
     } catch (err) {
       console.error('Error fetching applications:', err);
       showToast('Failed to load applications', 'error');
@@ -128,6 +130,12 @@ export default function EmployerApplications() {
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Applications Received</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {applications.length} total application{applications.length !== 1 ? 's' : ''}
+            {applications.filter(isPremiumApplicant).length > 0 && (
+              <span className="ml-2 inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 font-medium">
+                <FiZap size={11} />
+                {applications.filter(isPremiumApplicant).length} premium
+              </span>
+            )}
           </p>
         </div>
         <button onClick={fetchApplications} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 transition">
@@ -174,13 +182,31 @@ export default function EmployerApplications() {
       ) : (
         <div className="grid gap-4">
           {filtered.map(app => (
-            <div key={app.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition">
+            <div
+              key={app.id}
+              className={`bg-white dark:bg-gray-800 p-5 rounded-xl border hover:shadow-md transition ${
+                isPremiumApplicant(app)
+                  ? 'border-primary-200 dark:border-primary-700 ring-1 ring-primary-100 dark:ring-primary-900/30'
+                  : 'border-gray-200 dark:border-gray-700'
+              }`}
+            >
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{app.userName || 'Applicant'}</h3>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm">Applied for: <span className="font-medium">{app.title}</span></p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
+                          {app.userName || 'Applicant'}
+                        </h3>
+                        {isPremiumApplicant(app) && (
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full font-semibold border border-primary-200 dark:border-primary-700">
+                            <FiZap size={10} /> Premium
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">
+                        Applied for: <span className="font-medium">{app.title}</span>
+                      </p>
                     </div>
                     <select
                       value={app.status || 'pending'}
@@ -200,9 +226,8 @@ export default function EmployerApplications() {
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-2">{app.coverNote}</p>
                   )}
 
-                  {/* CV download link in list card */}
                   {app.cvUrl && (
-                    <a
+                    
                       href={app.cvUrl}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -248,8 +273,19 @@ export default function EmployerApplications() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-5 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{selectedApp.userName}'s Application</h3>
-              <button onClick={() => setSelectedApp(null)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"><FiX size={20} /></button>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {selectedApp.userName}'s Application
+                </h3>
+                {isPremiumApplicant(selectedApp) && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-full font-semibold border border-primary-200 dark:border-primary-700">
+                    <FiZap size={10} /> Premium
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setSelectedApp(null)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white">
+                <FiX size={20} />
+              </button>
             </div>
             <div className="p-5 space-y-5">
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -290,11 +326,10 @@ export default function EmployerApplications() {
                 </div>
               </div>
 
-              {/* CV Section in detail modal */}
               {selectedApp.cvUrl && (
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CV / Resume</p>
-                  <a
+                  
                     href={selectedApp.cvUrl}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -328,7 +363,7 @@ export default function EmployerApplications() {
                   </a>
                 )}
                 {selectedApp.cvUrl && (
-                  <a
+                  
                     href={selectedApp.cvUrl}
                     target="_blank"
                     rel="noopener noreferrer"
