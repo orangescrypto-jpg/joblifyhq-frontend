@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Hero from '../components/common/Hero';
-import LiveTicker from '../components/common/LiveTicker';
 import JobCard from '../components/job/JobCard';
 import ScholarshipCard from '../components/scholarship/ScholarshipCard';
 import BlogCard from '../components/blog/BlogCard';
@@ -16,7 +15,7 @@ import { FiDollarSign, FiTrendingUp } from 'react-icons/fi';
 function isWithin7Days(createdAt) {
   if (!createdAt) return false;
   const posted = createdAt?.seconds
-    ? new Date(createdAt.seconds * 1000)
+   ? new Date(createdAt.seconds * 1000)
     : new Date(createdAt);
   return (Date.now() - posted.getTime()) / (1000 * 60 * 60 * 24) <= 7;
 }
@@ -30,23 +29,23 @@ const COUNTRY_FLAGS = {
 };
 
 const CURRENCY_BY_COUNTRY = {
-  'Nigeria':      { symbol: '₦' },
-  'Ghana':        { symbol: 'GH₵' },
-  'Kenya':        { symbol: 'KSh' },
+  'Nigeria': { symbol: '₦' },
+  'Ghana': { symbol: 'GH₵' },
+  'Kenya': { symbol: 'KSh' },
   'South Africa': { symbol: 'R' },
-  'Uganda':       { symbol: 'USh' },
-  'Tanzania':     { symbol: 'TSh' },
-  'Ethiopia':     { symbol: 'Br' },
-  'Rwanda':       { symbol: 'FRw' },
-  'Egypt':        { symbol: 'E£' },
-  'Morocco':      { symbol: 'MAD' },
+  'Uganda': { symbol: 'USh' },
+  'Tanzania': { symbol: 'TSh' },
+  'Ethiopia': { symbol: 'Br' },
+  'Rwanda': { symbol: 'FRw' },
+  'Egypt': { symbol: 'E£' },
+  'Morocco': { symbol: 'MAD' },
 };
 
 const EXP_COLORS = {
-  'Entry (0-2 yrs)':   'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  'Mid (3-5 yrs)':     'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  'Entry (0-2 yrs)': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  'Mid (3-5 yrs)': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   'Senior (5-10 yrs)': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  'Lead / Manager':    'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  'Lead / Manager': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
 };
 
 function formatSalary(min, max, country) {
@@ -58,18 +57,18 @@ function formatSalary(min, max, country) {
   };
   const fMin = fmt(min);
   const fMax = fmt(max);
-  if (!fMin && !fMax) return 'N/A';
+  if (!fMin &&!fMax) return 'N/A';
   if (!fMax) return `${fMin}/mo`;
   return `${fMin} – ${fMax}/mo`;
 }
 
 export default function Home() {
-  const [featuredJobs, setFeaturedJobs]   = useState([]);
-  const [latestJobs, setLatestJobs]       = useState([]);
-  const [scholarships, setScholarships]   = useState([]);
-  const [blogs, setBlogs]                 = useState([]);
-  const [salaries, setSalaries]           = useState([]);
-  const [loading, setLoading]             = useState(true);
+  const [featuredJobs, setFeaturedJobs] = useState([]);
+  const [latestJobs, setLatestJobs] = useState([]);
+  const [scholarships, setScholarships] = useState([]);
+  const [blogs, setBlogs] = useState([]);
+  const [salaries, setSalaries] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [salaryLoading, setSalaryLoading] = useState(true);
 
   useEffect(() => {
@@ -82,7 +81,7 @@ export default function Home() {
         ]);
 
         const jobsArray = Array.isArray(jobsResult)
-          ? jobsResult
+         ? jobsResult
           : (jobsResult?.jobs || []);
 
         setFeaturedJobs(jobsArray.filter(j => j.isFeatured === true).slice(0, 5));
@@ -99,7 +98,7 @@ export default function Home() {
     const fetchSalaries = async () => {
       try {
         const snap = await getDocs(collection(db, 'salary_data'));
-        const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const rows = snap.docs.map(d => ({ id: d.id,...d.data() }));
         rows.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
         setSalaries(rows.slice(0, 4));
       } catch {
@@ -123,7 +122,7 @@ export default function Home() {
         <Link to={link} className="text-primary-600 font-medium hover:underline text-sm">View All →</Link>
       </div>
       {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">{subtitle}</p>}
-      {loading ? (
+      {loading? (
         <LoadingSkeleton count={3} />
       ) : (
         <div className={`grid grid-cols-1 ${columns} gap-6`}>
@@ -136,9 +135,6 @@ export default function Home() {
   return (
     <>
       <Hero />
-
-      {/* ── Live Ticker ── */}
-      <LiveTicker />
 
       {/* ── Featured Jobs ── */}
       {(loading || featuredJobs.length > 0) && (
@@ -246,14 +242,14 @@ export default function Home() {
           Real salary ranges by role, city & experience — free, no account needed
         </p>
 
-        {salaryLoading ? (
+        {salaryLoading? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
             ))}
           </div>
-        ) : salaries.length === 0 ? (
-          <div className="bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border border-primary-100 dark:border-primary-800 rounded-2xl p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        ) : salaries.length === 0? (
+          <div className="bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-primary-100 dark:border-primary-800 rounded-2xl p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
               <p className="text-lg font-bold text-gray-900 dark:text-white mb-1">
                 💰 Know what you should be earning
@@ -285,7 +281,7 @@ export default function Home() {
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                       {s.country && (
                         <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                          {COUNTRY_FLAGS[s.country] || '🌍'} {s.city ? `${s.city}, ${s.country}` : s.country}
+                          {COUNTRY_FLAGS[s.country] || '🌍'} {s.city? `${s.city}, ${s.country}` : s.country}
                         </span>
                       )}
                       {s.experience && (
