@@ -146,7 +146,7 @@ function SalaryModal({ isOpen, onClose, onSubmit, initial, loading }) {
               </label>
               <select
                 value={form.country}
-                onChange={e => set('country', e.target.value) || set('city', '')}
+                onChange={e => setForm(p => ({ ...p, country: e.target.value, city: '' }))}
                 className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Select country</option>
@@ -408,9 +408,14 @@ export default function Admin() {
         });
         showToast('Salary record added!');
       }
+      // Close modal first, then refresh so fetchItems sees correct activeTab
       setSalaryModalOpen(false);
       setEditSalary(null);
-      fetchItems();
+      // Fetch salary data directly without relying on activeTab closure
+      const snap = await getDocs(collection(db, 'salary_data'));
+      const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      rows.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      setItems(rows);
     } catch (err) {
       console.error(err);
       showToast('Failed to save salary record', 'error');
