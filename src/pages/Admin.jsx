@@ -289,14 +289,20 @@ export default function Admin() {
     setLoading(true);
     try {
       if (activeTab === 'job') {
-        const result = await getJobs({}, 100);
-        setItems(result.jobs || []);
+        const snap = await getDocs(collection(db, 'jobs'));
+        const jobs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        jobs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setItems(jobs);
       } else if (activeTab === 'scholarship') {
-        const result = await getScholarships();
-        setItems(result || []);
+        const snap = await getDocs(collection(db, 'scholarships'));
+        const scholarships = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        scholarships.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setItems(scholarships);
       } else if (activeTab === 'blog') {
         const snap = await getDocs(collection(db, 'blog'));
-        setItems(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        const blogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        blogs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setItems(blogs);
       } else if (activeTab === 'applications') {
         const snap = await getDocs(collection(db, 'applications'));
         const apps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -310,7 +316,8 @@ export default function Admin() {
       }
     } catch (err) {
       console.error('Fetch error:', err);
-      showToast('Failed to load data', 'error');
+      // Don't show error toast — silently fail and show empty state
+      setItems([]);
     } finally {
       setLoading(false);
     }
