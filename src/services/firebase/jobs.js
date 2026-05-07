@@ -27,7 +27,6 @@ export const getJobs = async (filters = {}, pageLimit = 20, lastDoc = null) => {
   const snapshot = await getDocs(q);
   let jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-  // Apply all filters in JavaScript
   if (filters.type) {
     jobs = jobs.filter(j => j.type === filters.type);
   }
@@ -112,4 +111,20 @@ export const getReferralCount = async (userId) => {
   const q = query(collection(db, 'referrals'), where('referrerId', '==', userId));
   const snap = await getDocs(q);
   return snap.size;
+};
+
+// ── PREMIUM BOOST SORT ──────────────────────────────────────────────────────
+// Sorts a raw applications array so premium applicants always appear first.
+// Within each tier group, most recent application comes first.
+// Call this after fetching applications from Firestore instead of the plain
+// date sort. No extra Firestore index needed — sort happens in JS.
+const TIER_RANK = { 'premium-annual': 0, 'premium': 1, 'free': 2, undefined: 3 };
+
+export const sortApplicationsByBoost = (applications) => {
+  return [...applications].sort((a, b) => {
+    const tierDiff = (TIER_RANK[a.applicantTier] ?? 3) - (TIER_RANK[b.applicantTier] ?? 3);
+    if (tierDiff !== 0) return tierDiff;
+    // Same tier — sort by most recent
+    return (b.appliedAt?.seconds || 0) - (a.appliedAt?.seconds || 0);
+  });
 };
