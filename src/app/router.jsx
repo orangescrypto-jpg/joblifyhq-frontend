@@ -17,6 +17,7 @@ import TermsConditions from '../pages/TermsConditions';
 import Contact from '../pages/Contact';
 import EmployerProfile from '../pages/EmployerProfile';
 import GlobalRemoteJobs from '../pages/GlobalRemoteJobs';
+import Premium from '../pages/Premium';
 
 // 🔐 Auth Pages
 import Login from '../pages/Login';
@@ -71,6 +72,7 @@ export default function AppRoutes() {
         <Route path="privacy-policy" element={<PrivacyPolicy />} />
         <Route path="terms" element={<TermsConditions />} />
         <Route path="contact" element={<Contact />} />
+        <Route path="premium" element={<Premium />} />
       </Route>
 
       {/* 🔑 Auth Pages */}
