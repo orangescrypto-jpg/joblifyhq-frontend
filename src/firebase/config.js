@@ -2,9 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getAnalytics } from "firebase/analytics";
 
-// 🔥 Your Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBQPOxX3Bd9bLcNKmGiCB4q9bKFgf3mPVU",
   authDomain: "joblifyhq.firebaseapp.com",
@@ -15,13 +13,18 @@ const firebaseConfig = {
   measurementId: "G-4CC79TR5TL"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+// Analytics — only in browser, never during build/SSR
+export const getAnalyticsInstance = () => {
+  if (typeof window !== 'undefined') {
+    return import('firebase/analytics').then(({ getAnalytics }) => getAnalytics(app));
+  }
+  return null;
+};
 
 export default app;
