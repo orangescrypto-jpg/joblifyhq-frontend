@@ -39,12 +39,12 @@ export default function EmployerApplications() {
     try {
       const [jobs, scholarships] = await Promise.all([
         getEmployerJobs(user.uid),
-        getEmployerScholarships(user.uid)
+        getEmployerScholarships(user.uid),
       ]);
 
       const allListings = [
         ...jobs.map(j => ({ ...j, listingType: 'job' })),
-        ...scholarships.map(s => ({ ...s, listingType: 'scholarship' }))
+        ...scholarships.map(s => ({ ...s, listingType: 'scholarship' })),
       ];
 
       setJobTitles(allListings.map(l => ({ id: l.id, title: l.title })));
@@ -71,7 +71,6 @@ export default function EmployerApplications() {
         allApps = [...allApps, ...snap.docs.map(d => ({ id: d.id, ...d.data() }))];
       }
 
-      // ── BOOST SORT: premium applicants float to the top ──
       setApplications(sortApplicationsByBoost(allApps));
     } catch (err) {
       console.error('Error fetching applications:', err);
@@ -87,12 +86,12 @@ export default function EmployerApplications() {
     try {
       await updateDoc(doc(db, 'applications', appId), {
         status: newStatus,
-        updatedAt: Timestamp.now()
+        updatedAt: Timestamp.now(),
       });
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
       if (selectedApp?.id === appId) setSelectedApp(prev => ({ ...prev, status: newStatus }));
       showToast('Status updated');
-    } catch (err) {
+    } catch {
       showToast('Failed to update status', 'error');
     }
   };
@@ -227,7 +226,7 @@ export default function EmployerApplications() {
                   )}
 
                   {app.cvUrl && (
-                    
+                    <a
                       href={app.cvUrl}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -287,6 +286,7 @@ export default function EmployerApplications() {
                 <FiX size={20} />
               </button>
             </div>
+
             <div className="p-5 space-y-5">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -329,7 +329,7 @@ export default function EmployerApplications() {
               {selectedApp.cvUrl && (
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CV / Resume</p>
-                  
+                  <a
                     href={selectedApp.cvUrl}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -351,19 +351,23 @@ export default function EmployerApplications() {
 
               <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 flex-wrap">
                 {selectedApp.userEmail && (
-                  <a href={`mailto:${selectedApp.userEmail}?subject=Re: Your application for ${selectedApp.title}`}
-                    className="btn-primary flex items-center gap-2">
+                  <a
+                    href={`mailto:${selectedApp.userEmail}?subject=Re: Your application for ${selectedApp.title}`}
+                    className="btn-primary flex items-center gap-2"
+                  >
                     <FiMail /> Send Email
                   </a>
                 )}
                 {selectedApp.phone && (
-                  <a href={`tel:${selectedApp.phone.replace(/\s/g, '')}`}
-                    className="btn-secondary flex items-center gap-2">
+                  <a
+                    href={`tel:${selectedApp.phone.replace(/\s/g, '')}`}
+                    className="btn-secondary flex items-center gap-2"
+                  >
                     <FiPhone /> Call Now
                   </a>
                 )}
                 {selectedApp.cvUrl && (
-                  
+                  <a
                     href={selectedApp.cvUrl}
                     target="_blank"
                     rel="noopener noreferrer"
