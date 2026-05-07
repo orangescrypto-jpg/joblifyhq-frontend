@@ -29,7 +29,7 @@ export default function Navbar() {
           Jobs <FiChevronDown size={14} className={`transition-transform ${jobsDropdown ? 'rotate-180' : ''}`} />
         </button>
         {jobsDropdown && (
-          <div className={`${mobile ? 'relative w-full pl-4 mt-1' : 'absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg'} py-1 z-50`}>
+          <div className={`${mobile ? 'relative w-full pl-4 mt-1' : 'absolute top-full left-0 mt-1 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg'} py-1 z-50`}>
             <Link to="/jobs" className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
               🌍 All Jobs
             </Link>
@@ -39,8 +39,12 @@ export default function Navbar() {
             <Link to="/jobs?type=Internship" className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
               📋 Internships
             </Link>
-            <Link to="/jobs?type=Remote" className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-              💻 Remote Jobs
+            <Link to="/remote-jobs" className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+              🌐 Global Remote
+            </Link>
+            <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
+            <Link to="/jobs" className="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:text-primary-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+              🏢 Companies
             </Link>
           </div>
         )}
