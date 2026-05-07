@@ -32,6 +32,7 @@ import EmployerDashboard from '../pages/employer/EmployerDashboard';
 import EmployerPostJob from '../pages/employer/EmployerPostJob';
 import EmployerListings from '../pages/employer/EmployerListings';
 import EmployerApplications from '../pages/employer/EmployerApplications';
+import EmployerPremium from '../pages/employer/EmployerPremium';
 
 const ProtectedRoute = ({ children, roleRequired }) => {
   const { user, loading } = useAuth();
@@ -118,6 +119,7 @@ export default function AppRoutes() {
         <Route path="employer/post-job" element={<EmployerPostJob />} />
         <Route path="employer/listings" element={<EmployerListings />} />
         <Route path="employer/applications" element={<EmployerApplications />} />
+        <Route path="employer/premium" element={<EmployerPremium />} />
       </Route>
 
       {/* 🚫 Catch-All */}
