@@ -114,19 +114,6 @@ export default function Premium() {
   const isPremium = user?.tier === 'premium' || user?.tier === 'premium-annual';
 
   const handleFlutterPayment = useFlutterwave({
-    public_key: FLUTTERWAVE_PUBLIC_KEY,
-    currency: 'NGN',
-    payment_options: 'card,mobilemoney,ussd,banktransfer',
-    customer: {
-      email: user?.email || '',
-      name: user?.displayName || user?.name || 'Joblify User',
-    },
-    customizations: {
-      title: 'JoblifyHQ Premium',
-      logo: 'https://joblifyhq.com/logo.png',
-    },
-  });
-
   const handleUpgrade = async (planId) => {
     if (!user) { navigate('/login'); return; }
     if (planId === 'free') return;
@@ -140,11 +127,21 @@ export default function Premium() {
     const amount = planId === 'premium' ? 6400 : 64000;
     const days = planId === 'premium' ? 30 : 365;
 
-    handleFlutterPayment({
+    const flwConfig = {
+      public_key: FLUTTERWAVE_PUBLIC_KEY,
       tx_ref: `joblify_${user.uid}_${Date.now()}`,
       amount: Number(amount),
       currency: 'NGN',
-      description: planId === 'premium' ? 'Monthly Premium - ₦6,400' : 'Annual Premium - ₦64,000',
+      payment_options: 'card,mobilemoney,ussd,banktransfer',
+      customer: {
+        email: user?.email || '',
+        name: user?.displayName || user?.name || 'Joblify User',
+      },
+      customizations: {
+        title: 'JoblifyHQ Premium',
+        description: planId === 'premium' ? 'Monthly Premium - ₦6,400' : 'Annual Premium - ₦64,000',
+        logo: 'https://joblify-hq-frontend.vercel.app/logo.png',
+      },
       callback: async (response) => {
         closePaymentModal();
         if (response.status === 'successful' || response.status === 'completed') {
