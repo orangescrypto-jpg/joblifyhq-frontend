@@ -27,6 +27,167 @@ const PREMIUM_PERKS = [
 
 const TABS = ['overview', 'saved', 'applications', 'profile', 'premium'];
 
+// ── Kanban config ────────────────────────────────────────────────────────────
+const KANBAN_COLUMNS = [
+  {
+    key: 'Applied',
+    label: 'Applied',
+    emoji: '📤',
+    borderColor: 'border-t-blue-400',
+    bg: 'bg-blue-50 dark:bg-blue-900/10',
+    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    bar: 'bg-blue-400',
+  },
+  {
+    key: 'Viewed',
+    label: 'Viewed',
+    emoji: '👁️',
+    borderColor: 'border-t-yellow-400',
+    bg: 'bg-yellow-50 dark:bg-yellow-900/10',
+    badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+    bar: 'bg-yellow-400',
+  },
+  {
+    key: 'Shortlisted',
+    label: 'Shortlisted',
+    emoji: '⭐',
+    borderColor: 'border-t-purple-400',
+    bg: 'bg-purple-50 dark:bg-purple-900/10',
+    badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    bar: 'bg-purple-400',
+  },
+  {
+    key: 'Rejected',
+    label: 'Rejected',
+    emoji: '❌',
+    borderColor: 'border-t-red-400',
+    bg: 'bg-red-50 dark:bg-red-900/10',
+    badge: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',
+    bar: 'bg-red-400',
+  },
+];
+
+function mapToKanban(status) {
+  if (!status || status === 'pending' || status === 'Submitted') return 'Applied';
+  if (['Under review', 'Viewed', 'Contacted', 'New'].includes(status)) return 'Viewed';
+  if (['Interview', 'Shortlisted'].includes(status)) return 'Shortlisted';
+  if (status === 'Rejected') return 'Rejected';
+  return 'Applied';
+}
+
+function fmtDate(ts) {
+  if (!ts) return '';
+  try {
+    const d = ts?.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
+  } catch { return ''; }
+}
+
+// ── KanbanBoard ──────────────────────────────────────────────────────────────
+function KanbanBoard({ applications }) {
+  const grouped = KANBAN_COLUMNS.reduce((acc, col) => {
+    acc[col.key] = applications.filter(a => mapToKanban(a.status) === col.key);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-6">
+      {/* Columns grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+        {KANBAN_COLUMNS.map(col => (
+          <div
+            key={col.key}
+            className={`rounded-xl border-t-4 ${col.borderColor} border border-gray-200 dark:border-gray-700 overflow-hidden`}
+          >
+            {/* Column header */}
+            <div className={`px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 ${col.bg}`}>
+              <span className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-1.5">
+                {col.emoji} {col.label}
+              </span>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${col.badge}`}>
+                {grouped[col.key].length}
+              </span>
+            </div>
+
+            {/* Cards */}
+            <div className="p-3 space-y-3 min-h-[100px] bg-white dark:bg-gray-800/40">
+              {grouped[col.key].length === 0 ? (
+                <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-8">
+                  No applications here
+                </p>
+              ) : (
+                grouped[col.key].map(app => (
+                  <div
+                    key={app.id}
+                    className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-3.5 shadow-sm hover:shadow-md transition"
+                  >
+                    <div className="flex items-start gap-2 mb-2">
+                      <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center text-primary-600 shrink-0">
+                        {app.opportunityType === 'scholarship' ? <FiAward size={14} /> : <FiBriefcase size={14} />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight truncate">
+                          {app.title}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {app.company || app.org || '—'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">
+                        {app.opportunityType === 'scholarship' ? '🎓 Scholarship' : '💼 Job'}
+                      </span>
+                      {app.appliedAt && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          {fmtDate(app.appliedAt)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pipeline progress bar */}
+      {applications.length > 0 && (
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            Pipeline Overview
+          </p>
+          <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+            {KANBAN_COLUMNS.map(col => {
+              const count = grouped[col.key].length;
+              const pct = (count / applications.length) * 100;
+              if (pct === 0) return null;
+              return (
+                <div
+                  key={col.key}
+                  className={`${col.bar} first:rounded-l-full last:rounded-r-full transition-all`}
+                  style={{ width: `${pct}%` }}
+                  title={`${col.label}: ${count}`}
+                />
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-4 mt-3">
+            {KANBAN_COLUMNS.map(col => (
+              <div key={col.key} className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                <span className={`w-2.5 h-2.5 rounded-full ${col.bar}`} />
+                {col.emoji} {col.label} ({grouped[col.key].length})
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user } = useAuth();
   const { savedJobs, savedScholarships, applications, loading } = useDashboard();
@@ -303,40 +464,37 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── APPLICATIONS ── */}
+        {/* ── APPLICATIONS — KANBAN ── */}
         {activeTab === 'applications' && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">My Applications ({applications.length})</h2>
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  My Applications{' '}
+                  <span className="text-gray-400 font-normal text-base">({applications.length})</span>
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  Track every application through your hiring pipeline
+                </p>
+              </div>
+              <Link to="/jobs" className="text-sm text-primary-600 hover:underline font-medium whitespace-nowrap">
+                Find More Jobs →
+              </Link>
+            </div>
+
             {applications.length === 0 ? (
-              <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-                <FiSend size={40} className="mx-auto mb-4 opacity-30" />
-                <p className="font-medium mb-1">No applications yet</p>
-                <p className="text-sm">Apply to jobs and scholarships to track them here.</p>
+              <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <FiSend size={40} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                <p className="font-medium text-gray-900 dark:text-white mb-1">No applications yet</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Apply to jobs and scholarships to track them here.
+                </p>
+                <Link to="/jobs" className="inline-block bg-primary-600 hover:bg-primary-700 text-white font-medium px-6 py-2.5 rounded-lg transition">
+                  Browse Jobs
+                </Link>
               </div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-                {applications.map(app => (
-                  <div key={app.id} className="p-5 flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center text-primary-600 flex-shrink-0 mt-0.5">
-                        {app.opportunityType === 'scholarship' ? <FiAward size={16} /> : <FiBriefcase size={16} />}
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-gray-900 dark:text-white">{app.title}</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{app.company || app.org}</p>
-                        {app.appliedAt && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            Applied {app.appliedAt?.toDate ? app.appliedAt.toDate().toLocaleDateString() : new Date(app.appliedAt).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <span className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium ${STATUS_STYLES[app.status] || STATUS_STYLES['pending']}`}>
-                      {app.status === 'pending' ? 'Submitted' : app.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <KanbanBoard applications={applications} />
             )}
           </div>
         )}
