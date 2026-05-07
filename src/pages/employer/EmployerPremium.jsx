@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext'
 import { doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { FLUTTERWAVE_PUBLIC_KEY } from '../../config/payments';
+import { db } from '../../firebase/config'
+import { FLUTTERWAVE_PUBLIC_KEY } from '../../config/payments'
 import {
   FiCheck, FiZap, FiStar, FiShield, FiBell,
   FiEye, FiFileText, FiTrendingUp, FiX,
