@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { FLUTTERWAVE_PUBLIC_KEY } from '../config/payments';
+import { db } from '../../firebase/config';
+import { FLUTTERWAVE_PUBLIC_KEY } from '../../config/payments';
 import {
   FiCheck, FiZap, FiStar, FiShield, FiBell,
   FiEye, FiFileText, FiTrendingUp, FiX,
@@ -227,6 +227,7 @@ export default function Premium() {
           </div>
         )}
 
+        {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
           {PLANS.map((plan) => (
             <div
@@ -291,6 +292,46 @@ export default function Premium() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Perks Section */}
+        <div className="mb-20">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">Everything you get with Premium</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10">Tools built for serious job seekers across Africa</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {PERKS.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+                <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 mb-4">
+                  <Icon size={20} />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{title}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-8">Frequently Asked Questions</h2>
+          <div className="space-y-3">
+            {FAQS.map((faq, i) => (
+              <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between px-5 py-4 text-left"
+                >
+                  <span className="font-medium text-gray-900 dark:text-white text-sm">{faq.q}</span>
+                  <span className={`text-gray-400 transition-transform ${openFaq === i ? 'rotate-45' : ''}`}>+</span>
+                </button>
+                {openFaq === i && (
+                  <div className="px-5 pb-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed border-t border-gray-100 dark:border-gray-700 pt-3">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
