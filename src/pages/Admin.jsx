@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { FiPlus, FiBriefcase, FiAward, FiFileText, FiEdit2, FiTrash2, FiEye, FiUsers, FiTrendingUp, FiMail, FiPhone, FiX, FiRefreshCw } from 'react-icons/fi';
+import {
+  FiPlus, FiBriefcase, FiAward, FiFileText, FiEdit2, FiTrash2,
+  FiEye, FiUsers, FiTrendingUp, FiMail, FiPhone, FiX, FiRefreshCw,
+  FiDollarSign, FiMapPin
+} from 'react-icons/fi';
 import AdminFormModal from '../components/admin/AdminFormModal';
 import { getJobs, createJob, updateJob, deleteJob } from '../services/firebase/jobs';
 import { getScholarships, createScholarship, updateScholarship, deleteScholarship } from '../services/firebase/scholarships';
@@ -8,20 +12,55 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 
 const TABS = [
-  { key: 'job', label: 'Jobs', icon: FiBriefcase },
-  { key: 'scholarship', label: 'Scholarships', icon: FiAward },
-  { key: 'blog', label: 'Blog Posts', icon: FiFileText },
-  { key: 'applications', label: 'Applications', icon: FiUsers },
+  { key: 'job',         label: 'Jobs',         icon: FiBriefcase  },
+  { key: 'scholarship', label: 'Scholarships',  icon: FiAward      },
+  { key: 'blog',        label: 'Blog Posts',    icon: FiFileText   },
+  { key: 'applications',label: 'Applications',  icon: FiUsers      },
+  { key: 'salaries',    label: 'Salary Data',   icon: FiDollarSign },
+];
+
+const AFRICAN_COUNTRIES = [
+  'Nigeria','Ghana','Kenya','South Africa','Uganda','Rwanda','Tanzania',
+  'Ethiopia','Senegal',"Côte d'Ivoire",'Cameroon','Zimbabwe','Zambia',
+  'Botswana','Namibia','Egypt','Morocco','Tunisia',
+];
+
+const CITIES_BY_COUNTRY = {
+  'Nigeria':       ['Lagos','Abuja','Port Harcourt','Ibadan','Kano','Enugu','Kaduna','Benin City','Aba','Onitsha'],
+  'Ghana':         ['Accra','Kumasi','Tamale','Tema'],
+  'Kenya':         ['Nairobi','Mombasa','Kisumu','Nakuru'],
+  'South Africa':  ['Johannesburg','Cape Town','Durban','Pretoria','Port Elizabeth'],
+  'Uganda':        ['Kampala','Entebbe','Gulu'],
+  'Tanzania':      ['Dar es Salaam','Arusha','Mwanza'],
+  'Ethiopia':      ['Addis Ababa','Dire Dawa'],
+  'Rwanda':        ['Kigali'],
+  'Senegal':       ['Dakar','Thiès'],
+  "Côte d'Ivoire": ['Abidjan','Bouaké'],
+  'Cameroon':      ['Douala','Yaoundé'],
+  'Zimbabwe':      ['Harare','Bulawayo'],
+  'Zambia':        ['Lusaka','Ndola'],
+  'Botswana':      ['Gaborone','Francistown'],
+  'Namibia':       ['Windhoek'],
+  'Egypt':         ['Cairo','Alexandria','Giza'],
+  'Morocco':       ['Casablanca','Rabat','Marrakech','Fez'],
+  'Tunisia':       ['Tunis','Sfax'],
+};
+
+const EXPERIENCE_LEVELS = [
+  'Entry (0-2 yrs)',
+  'Mid (3-5 yrs)',
+  'Senior (5-10 yrs)',
+  'Lead / Manager',
 ];
 
 const COUNTRY_FLAGS = {
-  'Nigeria': '🇳🇬', 'Ghana': '🇬🇭', 'Kenya': '🇰🇪', 'South Africa': '🇿🇦',
-  'Uganda': '🇺🇬', 'Rwanda': '🇷🇼', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
-  'Senegal': '🇸🇳', 'Cameroon': '🇨🇲', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
-  'Botswana': '🇧🇼', 'Namibia': '🇳🇦', 'Egypt': '🇪🇬', 'Morocco': '🇲🇦',
-  'Tunisia': '🇹🇳', "Côte d'Ivoire": '🇨🇮', 'UK': '🇬🇧', 'USA': '🇺🇸',
-  'Canada': '🇨🇦', 'Australia': '🇦🇺', 'Germany': '🇩🇪', 'France': '🇫🇷',
-  'China': '🇨🇳', 'Worldwide': '🌍', 'Remote': '🌍'
+  'Nigeria':'🇳🇬','Ghana':'🇬🇭','Kenya':'🇰🇪','South Africa':'🇿🇦',
+  'Uganda':'🇺🇬','Rwanda':'🇷🇼','Tanzania':'🇹🇿','Ethiopia':'🇪🇹',
+  'Senegal':'🇸🇳','Cameroon':'🇨🇲','Zimbabwe':'🇿🇼','Zambia':'🇿🇲',
+  'Botswana':'🇧🇼','Namibia':'🇳🇦','Egypt':'🇪🇬','Morocco':'🇲🇦',
+  'Tunisia':'🇹🇳',"Côte d'Ivoire":'🇨🇮','UK':'🇬🇧','USA':'🇺🇸',
+  'Canada':'🇨🇦','Australia':'🇦🇺','Germany':'🇩🇪','France':'🇫🇷',
+  'China':'🇨🇳','Worldwide':'🌍','Remote':'🌍',
 };
 
 const APP_STATUS_STYLES = {
@@ -33,6 +72,11 @@ const APP_STATUS_STYLES = {
   Rejected:  'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
 };
 
+const EMPTY_SALARY = {
+  role: '', country: '', city: '', industry: '',
+  experience: '', salaryMin: '', salaryMax: '', notes: '',
+};
+
 function getFlag(location = '') {
   for (const [name, flag] of Object.entries(COUNTRY_FLAGS)) {
     if (location.toLowerCase().includes(name.toLowerCase())) return flag;
@@ -40,22 +84,201 @@ function getFlag(location = '') {
   return '🌍';
 }
 
+// ── Salary inline modal ──────────────────────────────────────────────────────
+function SalaryModal({ isOpen, onClose, onSubmit, initial, loading }) {
+  const [form, setForm] = useState(initial || EMPTY_SALARY);
+
+  useEffect(() => {
+    setForm(initial || EMPTY_SALARY);
+  }, [initial, isOpen]);
+
+  if (!isOpen) return null;
+
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const availableCities = form.country ? (CITIES_BY_COUNTRY[form.country] || []) : [];
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.role.trim())    return alert('Role is required');
+    if (!form.country)        return alert('Country is required');
+    if (!form.salaryMin && !form.salaryMax) return alert('Enter at least one salary figure');
+    onSubmit({
+      ...form,
+      salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
+      salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center p-5 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <FiDollarSign className="text-primary-600" />
+            {initial ? 'Edit Salary Record' : 'Add Salary Record'}
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <FiX size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* Role */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Job Role / Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.role}
+              onChange={e => set('role', e.target.value)}
+              placeholder="e.g. Software Engineer, Product Manager"
+              className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          {/* Country + City */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Country <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={form.country}
+                onChange={e => set('country', e.target.value) || set('city', '')}
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">Select country</option>
+                {AFRICAN_COUNTRIES.map(c => (
+                  <option key={c} value={c}>{COUNTRY_FLAGS[c] || '🌍'} {c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+              <select
+                value={form.city}
+                onChange={e => set('city', e.target.value)}
+                disabled={!form.country}
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+              >
+                <option value="">All cities</option>
+                {availableCities.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Industry */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Industry</label>
+            <input
+              type="text"
+              value={form.industry}
+              onChange={e => set('industry', e.target.value)}
+              placeholder="e.g. Fintech, Healthcare, FMCG, Oil & Gas"
+              className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          {/* Experience */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Experience Level</label>
+            <select
+              value={form.experience}
+              onChange={e => set('experience', e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Select level</option>
+              {EXPERIENCE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+
+          {/* Salary min/max */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Monthly Salary Range (in local currency, numbers only) <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <input
+                  type="number"
+                  value={form.salaryMin}
+                  onChange={e => set('salaryMin', e.target.value)}
+                  placeholder="Min e.g. 150000"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Minimum</p>
+              </div>
+              <div>
+                <input
+                  type="number"
+                  value={form.salaryMax}
+                  onChange={e => set('salaryMax', e.target.value)}
+                  placeholder="Max e.g. 300000"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Maximum</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Notes <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <textarea
+              value={form.notes}
+              onChange={e => set('notes', e.target.value)}
+              rows={3}
+              placeholder="e.g. Includes bonuses. Based on 10 data points from Lagos-based Fintechs."
+              className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading}
+              className="flex-1 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 flex items-center justify-center gap-2">
+              {loading ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</>
+              ) : (
+                <><FiDollarSign size={15} /> {initial ? 'Save Changes' : 'Add Salary Record'}</>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Admin component ─────────────────────────────────────────────────────
 export default function Admin() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('job');
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
+  const [activeTab, setActiveTab]     = useState('job');
+  const [items, setItems]             = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [modalOpen, setModalOpen]     = useState(false);
+  const [editItem, setEditItem]       = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [toast, setToast]             = useState(null);
 
   // Applications tab state
-  const [selectedApp, setSelectedApp] = useState(null);
+  const [selectedApp, setSelectedApp]       = useState(null);
   const [appFilterStatus, setAppFilterStatus] = useState('all');
-  const [appSearch, setAppSearch] = useState('');
+  const [appSearch, setAppSearch]           = useState('');
+
+  // Salary tab state
+  const [salaryModalOpen, setSalaryModalOpen] = useState(false);
+  const [editSalary, setEditSalary]           = useState(null);
+  const [salarySearch, setSalarySearch]       = useState('');
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -79,6 +302,11 @@ export default function Admin() {
         const apps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         apps.sort((a, b) => (b.appliedAt?.seconds || 0) - (a.appliedAt?.seconds || 0));
         setItems(apps);
+      } else if (activeTab === 'salaries') {
+        const snap = await getDocs(collection(db, 'salary_data'));
+        const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        rows.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setItems(rows);
       }
     } catch (err) {
       console.error('Fetch error:', err);
@@ -90,8 +318,8 @@ export default function Admin() {
 
   useEffect(() => { fetchItems(); }, [activeTab]);
 
-  const handleCreate = () => { setEditItem(null); setModalOpen(true); };
-  const handleEdit = (item) => { setEditItem(item); setModalOpen(true); };
+  const handleCreate    = () => { setEditItem(null); setModalOpen(true); };
+  const handleEdit      = (item) => { setEditItem(item); setModalOpen(true); };
   const handleDeleteClick = (item) => { setDeleteTarget(item); setConfirmDelete(true); };
 
   const handleBoost = async (item) => {
@@ -101,7 +329,7 @@ export default function Admin() {
       await updateDoc(ref, { isFeatured: !item.isFeatured, updatedAt: Timestamp.now() });
       showToast(item.isFeatured ? 'Removed from featured' : '⚡ Marked as Featured!');
       fetchItems();
-    } catch (err) {
+    } catch {
       showToast('Failed to update featured status', 'error');
     }
   };
@@ -110,14 +338,15 @@ export default function Admin() {
     if (!deleteTarget) return;
     setActionLoading(true);
     try {
-      if (activeTab === 'job') await deleteJob(deleteTarget.id, user?.uid);
+      if (activeTab === 'job')          await deleteJob(deleteTarget.id, user?.uid);
       else if (activeTab === 'scholarship') await deleteScholarship(deleteTarget.id, user?.uid);
-      else if (activeTab === 'blog') await deleteDoc(doc(db, 'blog', deleteTarget.id));
+      else if (activeTab === 'blog')    await deleteDoc(doc(db, 'blog', deleteTarget.id));
+      else if (activeTab === 'salaries') await deleteDoc(doc(db, 'salary_data', deleteTarget.id));
       showToast('Deleted successfully');
       setConfirmDelete(false);
       setDeleteTarget(null);
       fetchItems();
-    } catch (err) {
+    } catch {
       showToast('Failed to delete', 'error');
     } finally {
       setActionLoading(false);
@@ -131,10 +360,10 @@ export default function Admin() {
       const { id: _id, type: _type, ...cleanData } = formData;
       if (activeTab === 'job') {
         if (isEdit) await updateJob(editItem.id, cleanData, user?.uid);
-        else await createJob(cleanData, user?.uid);
+        else        await createJob(cleanData, user?.uid);
       } else if (activeTab === 'scholarship') {
         if (isEdit) await updateScholarship(editItem.id, cleanData, user?.uid);
-        else await createScholarship(cleanData, user?.uid);
+        else        await createScholarship(cleanData, user?.uid);
       } else if (activeTab === 'blog') {
         if (isEdit) {
           await updateDoc(doc(db, 'blog', editItem.id), { ...cleanData, updatedAt: Timestamp.now() });
@@ -146,8 +375,38 @@ export default function Admin() {
       setModalOpen(false);
       setEditItem(null);
       fetchItems();
-    } catch (err) {
+    } catch {
       showToast('Failed to save. Please try again.', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ── Salary CRUD handlers ───────────────────────────────────────────────────
+  const handleSalarySubmit = async (formData) => {
+    setActionLoading(true);
+    try {
+      if (editSalary) {
+        await updateDoc(doc(db, 'salary_data', editSalary.id), {
+          ...formData,
+          updatedAt: Timestamp.now(),
+        });
+        showToast('Salary record updated!');
+      } else {
+        await addDoc(collection(db, 'salary_data'), {
+          ...formData,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          dataPoints: 1,
+        });
+        showToast('Salary record added!');
+      }
+      setSalaryModalOpen(false);
+      setEditSalary(null);
+      fetchItems();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to save salary record', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -155,14 +414,11 @@ export default function Admin() {
 
   const handleAppStatusChange = async (appId, newStatus) => {
     try {
-      await updateDoc(doc(db, 'applications', appId), {
-        status: newStatus,
-        updatedAt: Timestamp.now()
-      });
+      await updateDoc(doc(db, 'applications', appId), { status: newStatus, updatedAt: Timestamp.now() });
       setItems(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
       if (selectedApp?.id === appId) setSelectedApp(prev => ({ ...prev, status: newStatus }));
       showToast('Status updated');
-    } catch (err) {
+    } catch {
       showToast('Failed to update status', 'error');
     }
   };
@@ -178,6 +434,19 @@ export default function Admin() {
     return d.toLocaleDateString();
   };
 
+  const formatSalaryDisplay = (s) => {
+    const fmt = (n) => {
+      if (!n) return null;
+      if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+      return `${(n / 1000).toFixed(0)}k`;
+    };
+    const fMin = fmt(s.salaryMin);
+    const fMax = fmt(s.salaryMax);
+    if (!fMin && !fMax) return 'N/A';
+    if (!fMax) return fMin;
+    return `${fMin} – ${fMax}`;
+  };
+
   const filteredApps = items.filter(app => {
     const statusMatch = appFilterStatus === 'all' || app.status === appFilterStatus;
     const searchMatch = appSearch === '' ||
@@ -187,15 +456,21 @@ export default function Admin() {
     return statusMatch && searchMatch;
   });
 
-  // Stats for current tab
-  const totalViews = items.reduce((sum, i) => sum + (i.views || 0), 0);
+  const filteredSalaries = items.filter(s =>
+    !salarySearch ||
+    s.role?.toLowerCase().includes(salarySearch.toLowerCase()) ||
+    s.industry?.toLowerCase().includes(salarySearch.toLowerCase()) ||
+    s.country?.toLowerCase().includes(salarySearch.toLowerCase())
+  );
+
+  const totalViews        = items.reduce((sum, i) => sum + (i.views || 0), 0);
   const totalApplications = items.reduce((sum, i) => sum + (i.applications || 0), 0);
-  const totalFeatured = items.filter(i => i.isFeatured).length;
+  const totalFeatured     = items.filter(i => i.isFeatured).length;
 
   const columns = {
-    job: ['title', 'company', 'country', 'type', 'deadline'],
-    scholarship: ['title', 'org', 'country', 'type', 'deadline'],
-    blog: ['title', 'author', 'category'],
+    job:        ['title', 'company', 'country', 'type', 'deadline'],
+    scholarship:['title', 'org',     'country', 'type', 'deadline'],
+    blog:       ['title', 'author',  'category'],
   };
 
   return (
@@ -208,13 +483,25 @@ export default function Admin() {
         </div>
       )}
 
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Panel</h1>
-        {activeTab !== 'applications' && (
+
+        {activeTab !== 'applications' && activeTab !== 'salaries' && (
           <button onClick={handleCreate} className="flex items-center gap-2 btn-primary">
             <FiPlus /> Add {TABS.find(t => t.key === activeTab)?.label.slice(0, -1)}
           </button>
         )}
+
+        {activeTab === 'salaries' && (
+          <button
+            onClick={() => { setEditSalary(null); setSalaryModalOpen(true); }}
+            className="flex items-center gap-2 btn-primary"
+          >
+            <FiPlus /> Add Salary Record
+          </button>
+        )}
+
         {activeTab === 'applications' && (
           <button onClick={fetchItems} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 transition">
             <FiRefreshCw size={14} /> Refresh
@@ -222,14 +509,14 @@ export default function Admin() {
         )}
       </div>
 
-      {/* Stats Row — only for jobs and scholarships */}
-      {activeTab !== 'blog' && activeTab !== 'applications' && (
+      {/* Stats Row — jobs & scholarships */}
+      {activeTab !== 'blog' && activeTab !== 'applications' && activeTab !== 'salaries' && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Total', value: items.length, icon: FiTrendingUp, color: 'text-gray-900 dark:text-white' },
-            { label: 'Total Views', value: totalViews, icon: FiEye, color: 'text-blue-600' },
-            { label: 'Applications', value: totalApplications, icon: FiUsers, color: 'text-primary-600' },
-            { label: 'Featured', value: totalFeatured, icon: null, color: 'text-amber-600', emoji: '⚡' },
+            { label: 'Total',        value: items.length,      color: 'text-gray-900 dark:text-white' },
+            { label: 'Total Views',  value: totalViews,        color: 'text-blue-600' },
+            { label: 'Applications', value: totalApplications, color: 'text-primary-600' },
+            { label: 'Featured',     value: totalFeatured,     color: 'text-amber-600', emoji: '⚡' },
           ].map(stat => (
             <div key={stat.label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
               <p className={`text-2xl font-bold ${stat.color}`}>
@@ -245,10 +532,27 @@ export default function Admin() {
       {activeTab === 'applications' && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Total', value: items.length, color: 'text-gray-900 dark:text-white' },
-            { label: 'Pending', value: items.filter(a => a.status === 'pending' || !a.status).length, color: 'text-yellow-600' },
-            { label: 'Interview', value: items.filter(a => a.status === 'Interview').length, color: 'text-indigo-600' },
-            { label: 'With CV', value: items.filter(a => a.cvUrl).length, color: 'text-primary-600' },
+            { label: 'Total',     value: items.length,                                            color: 'text-gray-900 dark:text-white' },
+            { label: 'Pending',   value: items.filter(a => a.status === 'pending' || !a.status).length, color: 'text-yellow-600' },
+            { label: 'Interview', value: items.filter(a => a.status === 'Interview').length,      color: 'text-indigo-600' },
+            { label: 'With CV',   value: items.filter(a => a.cvUrl).length,                      color: 'text-primary-600' },
+          ].map(stat => (
+            <div key={stat.label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Salary stats */}
+      {activeTab === 'salaries' && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: 'Total Records', value: items.length, color: 'text-gray-900 dark:text-white' },
+            { label: 'Countries',     value: [...new Set(items.map(s => s.country).filter(Boolean))].length, color: 'text-primary-600' },
+            { label: 'Industries',    value: [...new Set(items.map(s => s.industry).filter(Boolean))].length, color: 'text-blue-600' },
+            { label: 'Cities',        value: [...new Set(items.map(s => s.city).filter(Boolean))].length, color: 'text-green-600' },
           ].map(stat => (
             <div key={stat.label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
               <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
@@ -264,7 +568,11 @@ export default function Admin() {
           const Icon = tab.icon;
           return (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition -mb-px whitespace-nowrap ${activeTab === tab.key ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}>
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition -mb-px whitespace-nowrap ${
+                activeTab === tab.key
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+              }`}>
               <Icon size={16} /> {tab.label}
               {tab.key === 'applications' && items.length > 0 && activeTab === 'applications' && (
                 <span className="ml-1 px-1.5 py-0.5 bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 rounded-full text-xs font-bold">
@@ -276,10 +584,122 @@ export default function Admin() {
         })}
       </div>
 
-      {/* ── APPLICATIONS TAB ── */}
+      {/* ══════════════════════════════════════════════════════
+          SALARY TAB
+      ══════════════════════════════════════════════════════ */}
+      {activeTab === 'salaries' && (
+        <div className="space-y-4">
+
+          {/* Search */}
+          <input
+            type="text"
+            placeholder="Search by role, industry or country..."
+            value={salarySearch}
+            onChange={e => setSalarySearch(e.target.value)}
+            className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : filteredSalaries.length === 0 ? (
+            <div className="text-center py-20 text-gray-500 dark:text-gray-400">
+              <FiDollarSign size={48} className="mx-auto mb-4 opacity-20" />
+              <p className="text-lg font-medium mb-1">No salary records yet</p>
+              <p className="text-sm mb-4">Start adding salary data to power the public Salary Portal.</p>
+              <button
+                onClick={() => { setEditSalary(null); setSalaryModalOpen(true); }}
+                className="btn-primary inline-flex items-center gap-2"
+              >
+                <FiPlus /> Add First Record
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs uppercase">
+                  <tr>
+                    <th className="px-4 py-3">Role</th>
+                    <th className="px-4 py-3">Location</th>
+                    <th className="px-4 py-3">Industry</th>
+                    <th className="px-4 py-3">Experience</th>
+                    <th className="px-4 py-3 text-right">Salary Range / mo</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {filteredSalaries.map(s => (
+                    <tr key={s.id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white max-w-[160px] truncate">
+                        {s.role || '—'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                        <div className="flex items-center gap-1">
+                          <span>{COUNTRY_FLAGS[s.country] || '🌍'}</span>
+                          <span className="truncate max-w-[100px]">
+                            {s.city ? `${s.city}, ${s.country}` : s.country || '—'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400 max-w-[120px] truncate">
+                        {s.industry || '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        {s.experience ? (
+                          <span className="px-2 py-0.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-full text-xs font-medium whitespace-nowrap">
+                            {s.experience}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-primary-600">
+                        {formatSalaryDisplay(s)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => { setEditSalary(s); setSalaryModalOpen(true); }}
+                            className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition"
+                            title="Edit"
+                          >
+                            <FiEdit2 size={15} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(s)}
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                            title="Delete"
+                          >
+                            <FiTrash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Public portal link hint */}
+          {items.length > 0 && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center pt-2">
+              💡 These records are live on the public{' '}
+              <a href="/salaries" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
+                /salaries
+              </a>{' '}
+              page — visible to all visitors.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════
+          APPLICATIONS TAB
+      ══════════════════════════════════════════════════════ */}
       {activeTab === 'applications' && (
         <div className="space-y-5">
-          {/* Search + Filter */}
           <div className="flex flex-wrap gap-2">
             <input
               type="text"
@@ -335,34 +755,24 @@ export default function Admin() {
                           {app.status || 'pending'}
                         </span>
                       </div>
-
                       {app.coverNote && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-1">{app.coverNote}</p>
                       )}
-
                       {app.cvUrl && (
-                        <a
-                          href={app.cvUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 mt-2 text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium"
-                        >
+                        <a href={app.cvUrl} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 mt-2 text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium">
                           <FiFileText size={12} /> {app.cvFileName || 'View CV'}
                         </a>
                       )}
-
                       <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-400 dark:text-gray-500">
                         {app.userEmail && <span>📧 {app.userEmail}</span>}
                         {app.phone && <span>📱 {app.phone}</span>}
                         <span>⏰ {formatDate(app.appliedAt)}</span>
                       </div>
                     </div>
-
                     <div className="flex flex-row md:flex-col gap-2 shrink-0">
-                      <button
-                        onClick={() => setSelectedApp(app)}
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition"
-                      >
+                      <button onClick={() => setSelectedApp(app)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition">
                         <FiEye size={13} /> View
                       </button>
                       {app.userEmail && (
@@ -396,30 +806,12 @@ export default function Admin() {
                 </div>
                 <div className="p-5 space-y-5">
                   <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400">Name</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedApp.userName || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400">Email</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedApp.userEmail || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400">Phone</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedApp.phone || 'Not provided'}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400">Applied For</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedApp.title}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400">Company</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedApp.company || '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 dark:text-gray-400">Applied</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{formatDate(selectedApp.appliedAt)}</p>
-                    </div>
+                    <div><p className="text-gray-500 dark:text-gray-400">Name</p><p className="font-medium text-gray-900 dark:text-white">{selectedApp.userName || '—'}</p></div>
+                    <div><p className="text-gray-500 dark:text-gray-400">Email</p><p className="font-medium text-gray-900 dark:text-white">{selectedApp.userEmail || '—'}</p></div>
+                    <div><p className="text-gray-500 dark:text-gray-400">Phone</p><p className="font-medium text-gray-900 dark:text-white">{selectedApp.phone || 'Not provided'}</p></div>
+                    <div><p className="text-gray-500 dark:text-gray-400">Applied For</p><p className="font-medium text-gray-900 dark:text-white">{selectedApp.title}</p></div>
+                    <div><p className="text-gray-500 dark:text-gray-400">Company</p><p className="font-medium text-gray-900 dark:text-white">{selectedApp.company || '—'}</p></div>
+                    <div><p className="text-gray-500 dark:text-gray-400">Applied</p><p className="font-medium text-gray-900 dark:text-white">{formatDate(selectedApp.appliedAt)}</p></div>
                     <div className="col-span-2">
                       <p className="text-gray-500 dark:text-gray-400 mb-1">Status</p>
                       <select
@@ -440,12 +832,8 @@ export default function Admin() {
                   {selectedApp.cvUrl && (
                     <div>
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CV / Resume</p>
-                      <a
-                        href={selectedApp.cvUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/40 transition text-sm font-medium border border-primary-200 dark:border-primary-800"
-                      >
+                      <a href={selectedApp.cvUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/40 transition text-sm font-medium border border-primary-200 dark:border-primary-800">
                         <FiFileText size={15} /> {selectedApp.cvFileName || 'View CV / Resume'}
                       </a>
                     </div>
@@ -488,8 +876,10 @@ export default function Admin() {
         </div>
       )}
 
-      {/* ── JOBS / SCHOLARSHIPS / BLOG TABLE ── */}
-      {activeTab !== 'applications' && (
+      {/* ══════════════════════════════════════════════════════
+          JOBS / SCHOLARSHIPS / BLOG TABLE
+      ══════════════════════════════════════════════════════ */}
+      {activeTab !== 'applications' && activeTab !== 'salaries' && (
         <>
           {loading ? (
             <div className="space-y-3">
@@ -500,7 +890,9 @@ export default function Admin() {
           ) : items.length === 0 ? (
             <div className="text-center py-16 text-gray-500 dark:text-gray-400">
               <p className="text-lg mb-2">No {activeTab}s yet.</p>
-              <button onClick={handleCreate} className="text-primary-600 hover:underline font-medium">+ Create your first one</button>
+              <button onClick={handleCreate} className="text-primary-600 hover:underline font-medium">
+                + Create your first one
+              </button>
             </div>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
@@ -524,7 +916,6 @@ export default function Admin() {
                   {items.map(item => (
                     <tr key={item.id}
                       className={`bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition ${item.isFeatured ? 'border-l-4 border-yellow-400' : ''}`}>
-
                       {columns[activeTab].map(col => (
                         <td key={col} className="px-4 py-3 text-gray-800 dark:text-gray-200 max-w-[180px] truncate">
                           {col === 'country' || col === 'location'
@@ -532,7 +923,6 @@ export default function Admin() {
                             : item[col] || '—'}
                         </td>
                       ))}
-
                       {activeTab !== 'blog' && (
                         <>
                           <td className="px-4 py-3 text-center">
@@ -555,17 +945,14 @@ export default function Admin() {
                           </td>
                         </>
                       )}
-
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
                           <button onClick={() => handleEdit(item)}
-                            className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition"
-                            title="Edit">
+                            className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition" title="Edit">
                             <FiEdit2 size={15} />
                           </button>
                           <button onClick={() => handleDeleteClick(item)}
-                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                            title="Delete">
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition" title="Delete">
                             <FiTrash2 size={15} />
                           </button>
                         </div>
@@ -579,8 +966,8 @@ export default function Admin() {
         </>
       )}
 
-      {/* Create/Edit Modal */}
-      {activeTab !== 'applications' && (
+      {/* Create/Edit Modal (jobs, scholarships, blog) */}
+      {activeTab !== 'applications' && activeTab !== 'salaries' && (
         <AdminFormModal
           isOpen={modalOpen}
           onClose={() => { setModalOpen(false); setEditItem(null); }}
@@ -590,13 +977,22 @@ export default function Admin() {
         />
       )}
 
+      {/* Salary Add/Edit Modal */}
+      <SalaryModal
+        isOpen={salaryModalOpen}
+        onClose={() => { setSalaryModalOpen(false); setEditSalary(null); }}
+        onSubmit={handleSalarySubmit}
+        initial={editSalary}
+        loading={actionLoading}
+      />
+
       {/* Delete Confirmation */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl p-6 max-w-sm w-full">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Delete this item?</h3>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-              "<span className="font-medium text-gray-700 dark:text-gray-300">{deleteTarget?.title}</span>" will be permanently deleted.
+              "<span className="font-medium text-gray-700 dark:text-gray-300">{deleteTarget?.title || deleteTarget?.role}</span>" will be permanently deleted.
             </p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => { setConfirmDelete(false); setDeleteTarget(null); }}
