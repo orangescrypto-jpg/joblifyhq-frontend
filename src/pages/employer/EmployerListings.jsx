@@ -10,16 +10,8 @@ import { getEmployerScholarships, deleteScholarship, updateScholarship } from '.
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import AdminFormModal from '../../components/admin/AdminFormModal';
+import { COUNTRY_FLAGS } from '../../constants';
 
-const COUNTRY_FLAGS = {
-  'Nigeria': '🇳🇬', 'Ghana': '🇬🇭', 'Kenya': '🇰🇪', 'South Africa': '🇿🇦',
-  'Uganda': '🇺🇬', 'Rwanda': '🇷🇼', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
-  'Senegal': '🇸🇳', 'Cameroon': '🇨🇲', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
-  'Botswana': '🇧🇼', 'Namibia': '🇳🇦', 'Egypt': '🇪🇬', 'Morocco': '🇲🇦',
-  'Tunisia': '🇹🇳', "Côte d'Ivoire": '🇨🇮', 'UK': '🇬🇧', 'USA': '🇺🇸',
-  'Canada': '🇨🇦', 'Australia': '🇦🇺', 'Germany': '🇩🇪', 'France': '🇫🇷',
-  'China': '🇨🇳', 'Worldwide': '🌍', 'Remote': '🌍'
-};
 
 function getFlag(country = '') {
   for (const [name, flag] of Object.entries(COUNTRY_FLAGS)) {
