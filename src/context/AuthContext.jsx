@@ -320,8 +320,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Update user's role (admin only - for internal use)
+  // Update user's role — client-side admin guard.
+  // Firestore security rules are the real enforcement layer; this prevents
+  // accidental calls from non-admin UI paths.
   const updateUserRole = async (userId, newRole) => {
+    if (!user || user.role !== 'admin') {
+      throw new Error('Unauthorized: only admins can change user roles.');
+    }
     try {
       const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, {
