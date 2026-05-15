@@ -7,6 +7,7 @@ import { useDashboard } from '../context/DashboardContext';
 import ShareButtons from '../components/blog/ShareButtons';
 import ApplyModal from '../components/common/ApplyModal';
 import JobCard from '../components/job/JobCard';
+import { daysUntil } from '../constants';
 
 function RichDescription({ text }) {
   if (!text) return null;
@@ -38,13 +39,6 @@ function RichDescription({ text }) {
   );
 }
 
-function daysUntil(deadline) {
-  if (!deadline) return null;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const end = new Date(deadline);
-  if (isNaN(end)) return null;
-  return Math.ceil((end - today) / (1000 * 60 * 60 * 24));
-}
 
 function isActivelyHiring(createdAt) {
   if (!createdAt) return false;
