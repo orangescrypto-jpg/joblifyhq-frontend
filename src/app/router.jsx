@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import ErrorBoundary from '../components/common/ErrorBoundary';
 import { useAuth } from '../context/AuthContext';
 import MainLayout from '../layouts/MainLayout';
 import EmployerLayout from '../layouts/EmployerLayout';
@@ -57,7 +58,11 @@ const ProtectedRoute = ({ children, roleRequired }) => {
 };
 
 export default function AppRoutes() {
+  const location = useLocation();
   return (
+    // key={location.pathname} resets the boundary on every navigation
+    // so a broken page doesn't lock the user out of the whole app.
+    <ErrorBoundary key={location.pathname}>
     <Routes>
       {/* 🌍 Public Routes */}
       <Route path="/" element={<MainLayout />}>
@@ -125,5 +130,6 @@ export default function AppRoutes() {
       {/* 🚫 Catch-All */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </ErrorBoundary>
   );
 }
