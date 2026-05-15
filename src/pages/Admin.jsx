@@ -327,16 +327,21 @@ export default function Admin() {
     try {
       const { id: _id, type: _type, ...cleanData } = formData;
       if (activeTab === 'job') {
-        if (isEdit) await updateJob(editItem.id, cleanData, user?.uid);
-        else        await createJob(cleanData, user?.uid);
+        // Always ensure status is set so jobs appear on the homepage
+        const jobData = { ...cleanData, status: cleanData.status || 'active' };
+        if (isEdit) await updateJob(editItem.id, jobData, user?.uid);
+        else        await createJob(jobData, user?.uid);
       } else if (activeTab === 'scholarship') {
-        if (isEdit) await updateScholarship(editItem.id, cleanData, user?.uid);
-        else        await createScholarship(cleanData, user?.uid);
+        // Always ensure status is set so scholarships appear on the homepage
+        const schData = { ...cleanData, status: cleanData.status || 'active' };
+        if (isEdit) await updateScholarship(editItem.id, schData, user?.uid);
+        else        await createScholarship(schData, user?.uid);
       } else if (activeTab === 'blog') {
         if (isEdit) {
-          await updateDoc(doc(db, 'blog', editItem.id), { ...cleanData, updatedAt: Timestamp.now() });
+          // Always ensure published is set so blog posts appear on the homepage
+          await updateDoc(doc(db, 'blog', editItem.id), { ...cleanData, published: cleanData.published ?? true, updatedAt: Timestamp.now() });
         } else {
-          await addDoc(collection(db, 'blog'), { ...cleanData, createdAt: Timestamp.now(), updatedAt: Timestamp.now(), views: 0 });
+          await addDoc(collection(db, 'blog'), { ...cleanData, published: true, createdAt: Timestamp.now(), updatedAt: Timestamp.now(), views: 0 });
         }
       }
       showToast(isEdit ? 'Updated successfully!' : 'Created successfully!');
@@ -355,14 +360,17 @@ export default function Admin() {
     setActionLoading(true);
     try {
       if (editSalary) {
+        // Always ensure status is set so salary entries appear on the homepage
         await updateDoc(doc(db, 'salary_data', editSalary.id), {
           ...formData,
+          status: formData.status || 'active',
           updatedAt: Timestamp.now(),
         });
         showToast('Salary record updated!');
       } else {
         await addDoc(collection(db, 'salary_data'), {
           ...formData,
+          status: 'active',
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
           dataPoints: 1,
