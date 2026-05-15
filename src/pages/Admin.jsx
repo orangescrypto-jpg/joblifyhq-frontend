@@ -10,6 +10,7 @@ import { getScholarships, createScholarship, updateScholarship, deleteScholarshi
 import { getDocs, collection, addDoc, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { AFRICAN_COUNTRIES, CITIES_BY_COUNTRY, EXPERIENCE_LEVELS, COUNTRY_FLAGS } from '../constants';
 
 const TABS = [
   { key: 'job',         label: 'Jobs',         icon: FiBriefcase  },
@@ -19,49 +20,9 @@ const TABS = [
   { key: 'salaries',    label: 'Salary Data',   icon: FiDollarSign },
 ];
 
-const AFRICAN_COUNTRIES = [
-  'Nigeria','Ghana','Kenya','South Africa','Uganda','Rwanda','Tanzania',
-  'Ethiopia','Senegal',"Côte d'Ivoire",'Cameroon','Zimbabwe','Zambia',
-  'Botswana','Namibia','Egypt','Morocco','Tunisia',
-];
 
-const CITIES_BY_COUNTRY = {
-  'Nigeria':       ['Lagos','Abuja','Port Harcourt','Ibadan','Kano','Enugu','Kaduna','Benin City','Aba','Onitsha'],
-  'Ghana':         ['Accra','Kumasi','Tamale','Tema'],
-  'Kenya':         ['Nairobi','Mombasa','Kisumu','Nakuru'],
-  'South Africa':  ['Johannesburg','Cape Town','Durban','Pretoria','Port Elizabeth'],
-  'Uganda':        ['Kampala','Entebbe','Gulu'],
-  'Tanzania':      ['Dar es Salaam','Arusha','Mwanza'],
-  'Ethiopia':      ['Addis Ababa','Dire Dawa'],
-  'Rwanda':        ['Kigali'],
-  'Senegal':       ['Dakar','Thiès'],
-  "Côte d'Ivoire": ['Abidjan','Bouaké'],
-  'Cameroon':      ['Douala','Yaoundé'],
-  'Zimbabwe':      ['Harare','Bulawayo'],
-  'Zambia':        ['Lusaka','Ndola'],
-  'Botswana':      ['Gaborone','Francistown'],
-  'Namibia':       ['Windhoek'],
-  'Egypt':         ['Cairo','Alexandria','Giza'],
-  'Morocco':       ['Casablanca','Rabat','Marrakech','Fez'],
-  'Tunisia':       ['Tunis','Sfax'],
-};
 
-const EXPERIENCE_LEVELS = [
-  'Entry (0-2 yrs)',
-  'Mid (3-5 yrs)',
-  'Senior (5-10 yrs)',
-  'Lead / Manager',
-];
 
-const COUNTRY_FLAGS = {
-  'Nigeria':'🇳🇬','Ghana':'🇬🇭','Kenya':'🇰🇪','South Africa':'🇿🇦',
-  'Uganda':'🇺🇬','Rwanda':'🇷🇼','Tanzania':'🇹🇿','Ethiopia':'🇪🇹',
-  'Senegal':'🇸🇳','Cameroon':'🇨🇲','Zimbabwe':'🇿🇼','Zambia':'🇿🇲',
-  'Botswana':'🇧🇼','Namibia':'🇳🇦','Egypt':'🇪🇬','Morocco':'🇲🇦',
-  'Tunisia':'🇹🇳',"Côte d'Ivoire":'🇨🇮','UK':'🇬🇧','USA':'🇺🇸',
-  'Canada':'🇨🇦','Australia':'🇦🇺','Germany':'🇩🇪','France':'🇫🇷',
-  'China':'🇨🇳','Worldwide':'🌍','Remote':'🌍',
-};
 
 const APP_STATUS_STYLES = {
   pending:   'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
