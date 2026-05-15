@@ -3,12 +3,8 @@ import { FiSearch, FiFilter, FiZap, FiGlobe } from 'react-icons/fi';
 import { getJobs } from '../services/firebase/jobs';
 import JobCard from '../components/job/JobCard';
 import LoadingSkeleton from '../components/common/LoadingSkeleton';
+import { JOB_CATEGORIES as CATEGORIES } from '../constants';
 
-const CATEGORIES = [
-  'All', 'Engineering', 'Design', 'Marketing', 'Sales',
-  'Finance', 'Data Science', 'Customer Support', 'Writing & Content',
-  'HR & Recruitment', 'Project Management', 'Cybersecurity',
-];
 
 function isGlobalRemote(job) {
   return (
