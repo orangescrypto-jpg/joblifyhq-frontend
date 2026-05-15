@@ -4,34 +4,7 @@ import { FiSearch, FiFilter, FiX } from 'react-icons/fi';
 import { getJobs } from '../services/firebase/jobs';
 import JobCard from '../components/job/JobCard';
 import LoadingSkeleton from '../components/common/LoadingSkeleton';
-
-const JOB_TYPES = [
-  'Full-time', 'Part-time', 'Remote', 'Contract',
-  'Internship', 'Entry-level', 'Graduate Trainee', 'NYSC', 'Volunteer'
-];
-
-const AFRICAN_COUNTRIES = [
-  'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Uganda', 'Tanzania',
-  'Ethiopia', 'Rwanda', 'Senegal', "Côte d'Ivoire", 'Cameroon',
-  'Zimbabwe', 'Zambia', 'Botswana', 'Namibia', 'Egypt', 'Morocco', 'Tunisia'
-];
-
-const CATEGORIES = [
-  'Engineering', 'Design', 'Marketing', 'Sales', 'Finance',
-  'Education', 'Healthcare', 'STEM', 'Agriculture', 'Law', 'Media', 'Tech',
-  'Business', 'Accounting', 'Human Resources', 'Logistics & Supply Chain',
-  'Hospitality & Tourism', 'Real Estate', 'Construction', 'Energy & Oil',
-  'NGO & Non-Profit', 'Government & Public Sector', 'Research & Development',
-  'Social Work', 'Journalism', 'Sports & Fitness', 'Arts & Entertainment',
-  'Information Technology', 'Cybersecurity', 'Data Science', 'Aviation',
-  'Banking', 'Insurance', 'Telecommunications', 'Other'
-];
-
-function isWithin7Days(createdAt) {
-  if (!createdAt) return false;
-  const posted = createdAt?.seconds ? new Date(createdAt.seconds * 1000) : new Date(createdAt);
-  return (Date.now() - posted.getTime()) / (1000 * 60 * 60 * 24) <= 7;
-}
+import { JOB_TYPES, AFRICAN_COUNTRIES, JOB_CATEGORIES, isWithin7Days } from '../constants';
 
 export default function Jobs() {
   const [searchParams] = useSearchParams();
