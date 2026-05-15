@@ -1,15 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FiGlobe, FiCalendar, FiAward } from 'react-icons/fi';
+import { COUNTRY_FLAGS } from '../../constants';
 
-const COUNTRY_FLAGS = {
-  'Nigeria': '🇳🇬', 'Ghana': '🇬🇭', 'Kenya': '🇰🇪', 'South Africa': '🇿🇦',
-  'Uganda': '🇺🇬', 'Rwanda': '🇷🇼', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
-  'Senegal': '🇸🇳', 'Cameroon': '🇨🇲', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
-  'Botswana': '🇧🇼', 'Namibia': '🇳🇦', 'Egypt': '🇪🇬', 'Morocco': '🇲🇦',
-  'Tunisia': '🇹🇳', "Côte d'Ivoire": '🇨🇮', 'UK': '🇬🇧', 'USA': '🇺🇸',
-  'Canada': '🇨🇦', 'Australia': '🇦🇺', 'Germany': '🇩🇪', 'France': '🇫🇷',
-  'China': '🇨🇳', 'Worldwide': '🌍', 'International': '🌍',
-};
 
 function getFlag(country = '') {
   for (const [name, flag] of Object.entries(COUNTRY_FLAGS)) {
