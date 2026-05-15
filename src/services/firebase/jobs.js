@@ -5,30 +5,25 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 
-// ── Firestore indexes required (firestore.indexes.json) ───────────────────
-// These composite indexes must exist in your Firebase project.
-// Deploy with: firebase deploy --only firestore:indexes
-//
-//  Collection: jobs
-//  Indexes needed:
-//   1. status ASC + createdAt DESC          (base listing)
-//   2. status ASC + type ASC + createdAt DESC
-//   3. status ASC + country ASC + createdAt DESC
-//   4. status ASC + category ASC + createdAt DESC
-//   5. status ASC + isRemote ASC + createdAt DESC
-// ─────────────────────────────────────────────────────────────────────────
-
 const PAGE_SIZE = 20;
 
 /**
- * Fetch jobs from Firestore with server-side filtering.
- * Only search (full-text) and activeHiringOnly remain in JS.
+ * Fetch jobs from Firestore.
+ *
+ * Status filter behaviour:
+ * - If filters.status is explicitly set, filter by that value.
+ * - If filters.status is 'all', skip the status filter entirely (shows everything).
+ * - Default (homepage / jobs page): fetches ALL jobs so existing posts without
+ *   a status field are still visible. New jobs created via createJob() will
+ *   always have status:'active' set automatically.
  */
 export const getJobs = async (filters = {}, pageLimit = PAGE_SIZE, lastDoc = null) => {
-  let constraints = [
-    where('status', '==', 'active'),
-    orderBy('createdAt', 'desc'),
-  ];
+  let constraints = [orderBy('createdAt', 'desc')];
+
+  // Only apply status filter when explicitly requested
+  if (filters.status && filters.status !== 'all') {
+    constraints.unshift(where('status', '==', filters.status));
+  }
 
   if (filters.type)     constraints.push(where('type', '==', filters.type));
   if (filters.country)  constraints.push(where('country', '==', filters.country));
@@ -87,13 +82,17 @@ export const createJob = async (jobData, userId) => {
     views: 0,
     isFeatured: false,
     isRemote: jobData.isRemote || false,
-    status: 'active',
+    status: 'active', // always set on new jobs
   });
   return docRef.id;
 };
 
 export const updateJob = async (id, updates) => {
-  await updateDoc(doc(db, 'jobs', id), { ...updates, updatedAt: Timestamp.now() });
+  await updateDoc(doc(db, 'jobs', id), {
+    ...updates,
+    status: updates.status || 'active', // ensure job is always visible
+    updatedAt: Timestamp.now()
+  });
 };
 
 export const deleteJob = async (id) => {
