@@ -12,35 +12,9 @@ import { getDocs, collection } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { FiDollarSign, FiTrendingUp } from 'react-icons/fi';
 import {
-  CURRENCY_BY_COUNTRY, EXP_COLORS,
+  COUNTRY_FLAGS, CURRENCY_BY_COUNTRY, EXP_COLORS,
   isWithin7Days, formatSalary,
 } from '../constants';
-
-const CURRENCY_BY_COUNTRY = {
-  'Nigeria': { symbol: '₦' },
-  'Ghana': { symbol: 'GH₵' },
-  'Kenya': { symbol: 'KSh' },
-  'South Africa': { symbol: 'R' },
-  'Uganda': { symbol: 'USh' },
-  'Tanzania': { symbol: 'TSh' },
-  'Ethiopia': { symbol: 'Br' },
-  'Rwanda': { symbol: 'FRw' },
-  'Egypt': { symbol: 'E£' },
-  'Morocco': { symbol: 'MAD' },
-};
-
-;
-  const fmt = (n) => {
-    if (!n) return null;
-    if (n >= 1000000) return `${currency.symbol}${(n / 1000000).toFixed(1)}M`;
-    return `${currency.symbol}${(n / 1000).toFixed(0)}k`;
-  };
-  const fMin = fmt(min);
-  const fMax = fmt(max);
-  if (!fMin &&!fMax) return 'N/A';
-  if (!fMax) return `${fMin}/mo`;
-  return `${fMin} – ${fMax}/mo`;
-}
 
 export default function Home() {
   const [featuredJobs, setFeaturedJobs] = useState([]);
@@ -78,7 +52,7 @@ export default function Home() {
     const fetchSalaries = async () => {
       try {
         const snap = await getDocs(collection(db, 'salary_data'));
-        const rows = snap.docs.map(d => ({ id: d.id,...d.data() }));
+        const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         rows.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
         setSalaries(rows.slice(0, 4));
       } catch {
@@ -102,7 +76,7 @@ export default function Home() {
         <Link to={link} className="text-primary-600 font-medium hover:underline text-sm">View All →</Link>
       </div>
       {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">{subtitle}</p>}
-      {loading? (
+      {loading ? (
         <LoadingSkeleton count={3} />
       ) : (
         <div className={`grid grid-cols-1 ${columns} gap-6`}>
@@ -222,13 +196,13 @@ export default function Home() {
           Real salary ranges by role, city & experience — free, no account needed
         </p>
 
-        {salaryLoading? (
+        {salaryLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
             ))}
           </div>
-        ) : salaries.length === 0? (
+        ) : salaries.length === 0 ? (
           <div className="bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-primary-100 dark:border-primary-800 rounded-2xl p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
               <p className="text-lg font-bold text-gray-900 dark:text-white mb-1">
@@ -261,7 +235,7 @@ export default function Home() {
                     <div className="flex flex-wrap items-center gap-2 mt-1">
                       {s.country && (
                         <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                          {COUNTRY_FLAGS[s.country] || '🌍'} {s.city? `${s.city}, ${s.country}` : s.country}
+                          {COUNTRY_FLAGS[s.country] || '🌍'} {s.city ? `${s.city}, ${s.country}` : s.country}
                         </span>
                       )}
                       {s.experience && (
