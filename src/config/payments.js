@@ -1,1 +1,3 @@
-export const FLUTTERWAVE_PUBLIC_KEY = 'FLWPUBK_TEST-b9f4ac441c5dd35e07207647f19afe36-X';
+// Read from environment — never hardcode payment keys in source.
+// Set VITE_FLUTTERWAVE_PUBLIC_KEY in your .env.local file.
+export const FLUTTERWAVE_PUBLIC_KEY = import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY || '';
