@@ -1,9 +1,81 @@
-import { 
-  collection, addDoc, getDocs, getDoc, doc, 
-  updateDoc, deleteDoc, query, where, orderBy, 
-  limit, startAfter, Timestamp 
+import {
+  collection, addDoc, getDocs, getDoc, doc,
+  updateDoc, deleteDoc, query, where, orderBy,
+  limit, startAfter, Timestamp
 } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+
+// ── Firestore indexes required (firestore.indexes.json) ───────────────────
+// These composite indexes must exist in your Firebase project.
+// Deploy with: firebase deploy --only firestore:indexes
+//
+//  Collection: jobs
+//  Indexes needed:
+//   1. status ASC + createdAt DESC          (base listing)
+//   2. status ASC + type ASC + createdAt DESC
+//   3. status ASC + country ASC + createdAt DESC
+//   4. status ASC + category ASC + createdAt DESC
+//   5. status ASC + isRemote ASC + createdAt DESC
+// ─────────────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 20;
+
+/**
+ * Fetch jobs from Firestore with server-side filtering.
+ * Only search (full-text) and activeHiringOnly remain in JS.
+ */
+export const getJobs = async (filters = {}, pageLimit = PAGE_SIZE, lastDoc = null) => {
+  let constraints = [
+    where('status', '==', 'active'),
+    orderBy('createdAt', 'desc'),
+  ];
+
+  if (filters.type)     constraints.push(where('type', '==', filters.type));
+  if (filters.country)  constraints.push(where('country', '==', filters.country));
+  if (filters.category) constraints.push(where('category', '==', filters.category));
+  if (filters.isRemote) constraints.push(where('isRemote', '==', true));
+
+  constraints.push(limit(pageLimit));
+  if (lastDoc) constraints.push(startAfter(lastDoc));
+
+  const q = query(collection(db, 'jobs'), ...constraints);
+  const snapshot = await getDocs(q);
+
+  let jobs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const newLastDoc = snapshot.docs[snapshot.docs.length - 1] ?? null;
+
+  // JS-only: full-text search
+  if (filters.search) {
+    const s = filters.search.toLowerCase().trim();
+    jobs = jobs.filter(j =>
+      (j.title       || '').toLowerCase().includes(s) ||
+      (j.company     || '').toLowerCase().includes(s) ||
+      (j.description || '').toLowerCase().includes(s) ||
+      (j.category    || '').toLowerCase().includes(s)
+    );
+  }
+
+  // JS-only: posted within last 7 days
+  if (filters.activeHiringOnly) {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    jobs = jobs.filter(j => {
+      const posted = j.createdAt?.seconds
+        ? j.createdAt.seconds * 1000
+        : new Date(j.createdAt).getTime();
+      return posted >= sevenDaysAgo;
+    });
+  }
+
+  return { jobs, lastDoc: newLastDoc, hasMore: snapshot.docs.length === pageLimit };
+};
+
+export const getJobById = async (id) => {
+  const docRef = doc(db, 'jobs', id);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) return null;
+  updateDoc(docRef, { views: (docSnap.data().views || 0) + 1, updatedAt: Timestamp.now() }).catch(() => {});
+  return { id: docSnap.id, ...docSnap.data() };
+};
 
 export const createJob = async (jobData, userId) => {
   const docRef = await addDoc(collection(db, 'jobs'), {
@@ -15,76 +87,27 @@ export const createJob = async (jobData, userId) => {
     views: 0,
     isFeatured: false,
     isRemote: jobData.isRemote || false,
-    status: 'active'
+    status: 'active',
   });
   return docRef.id;
 };
 
-// Fetch ALL jobs from Firestore ordered by date — filtering is done in JS
-// This avoids needing composite Firestore indexes
-export const getJobs = async (filters = {}, pageLimit = 20, lastDoc = null) => {
-  const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
-  const snapshot = await getDocs(q);
-  let jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-  if (filters.type) {
-    jobs = jobs.filter(j => j.type === filters.type);
-  }
-  if (filters.country) {
-    jobs = jobs.filter(j =>
-      (j.country || '').toLowerCase() === filters.country.toLowerCase() ||
-      (j.location || '').toLowerCase().includes(filters.country.toLowerCase())
-    );
-  }
-  if (filters.category) {
-    jobs = jobs.filter(j => j.category === filters.category);
-  }
-  if (filters.isRemote) {
-    jobs = jobs.filter(j => j.isRemote === true || j.type === 'Remote');
-  }
-  if (filters.search) {
-    const s = filters.search.toLowerCase();
-    jobs = jobs.filter(j =>
-      (j.title || '').toLowerCase().includes(s) ||
-      (j.company || '').toLowerCase().includes(s) ||
-      (j.description || '').toLowerCase().includes(s)
-    );
-  }
-
-  return {
-    jobs,
-    lastDoc: null,
-    hasMore: false
-  };
+export const updateJob = async (id, updates) => {
+  await updateDoc(doc(db, 'jobs', id), { ...updates, updatedAt: Timestamp.now() });
 };
 
-export const getJobById = async (id) => {
-  const docRef = doc(db, 'jobs', id);
-  const docSnap = await getDoc(docRef);
-  if (docSnap.exists()) {
-    updateDoc(docRef, {
-      views: (docSnap.data().views || 0) + 1,
-      updatedAt: Timestamp.now()
-    }).catch(() => {});
-    return { id: docSnap.id, ...docSnap.data() };
-  }
-  return null;
-};
-
-export const updateJob = async (id, updates, userId) => {
-  const jobRef = doc(db, 'jobs', id);
-  await updateDoc(jobRef, { ...updates, updatedAt: Timestamp.now() });
-};
-
-export const deleteJob = async (id, userId) => {
+export const deleteJob = async (id) => {
   await deleteDoc(doc(db, 'jobs', id));
 };
 
 export const getEmployerJobs = async (userId) => {
-  const q = query(collection(db, 'jobs'), where('postedBy', '==', userId));
+  const q = query(
+    collection(db, 'jobs'),
+    where('postedBy', '==', userId),
+    orderBy('createdAt', 'desc')
+  );
   const snapshot = await getDocs(q);
-  const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  return jobs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
 export const boostJob = async (id, userId, durationDays = 14) => {
@@ -94,15 +117,13 @@ export const boostJob = async (id, userId, durationDays = 14) => {
   await updateDoc(jobRef, {
     isFeatured: true,
     featuredUntil: Timestamp.fromMillis(Date.now() + durationDays * 24 * 60 * 60 * 1000),
-    updatedAt: Timestamp.now()
+    updatedAt: Timestamp.now(),
   });
 };
 
 export const createReferral = async (jobId, referrerId, friendEmail) => {
   const docRef = await addDoc(collection(db, 'referrals'), {
-    jobId, referrerId, friendEmail,
-    createdAt: Timestamp.now(),
-    status: 'pending'
+    jobId, referrerId, friendEmail, createdAt: Timestamp.now(), status: 'pending',
   });
   return docRef.id;
 };
@@ -113,18 +134,10 @@ export const getReferralCount = async (userId) => {
   return snap.size;
 };
 
-// ── PREMIUM BOOST SORT ──────────────────────────────────────────────────────
-// Sorts a raw applications array so premium applicants always appear first.
-// Within each tier group, most recent application comes first.
-// Call this after fetching applications from Firestore instead of the plain
-// date sort. No extra Firestore index needed — sort happens in JS.
 const TIER_RANK = { 'premium-annual': 0, 'premium': 1, 'free': 2, undefined: 3 };
-
-export const sortApplicationsByBoost = (applications) => {
-  return [...applications].sort((a, b) => {
+export const sortApplicationsByBoost = (applications) =>
+  [...applications].sort((a, b) => {
     const tierDiff = (TIER_RANK[a.applicantTier] ?? 3) - (TIER_RANK[b.applicantTier] ?? 3);
     if (tierDiff !== 0) return tierDiff;
-    // Same tier — sort by most recent
     return (b.appliedAt?.seconds || 0) - (a.appliedAt?.seconds || 0);
   });
-};
