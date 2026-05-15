@@ -3,25 +3,16 @@ import { FiSearch, FiFilter, FiX } from 'react-icons/fi';
 import { getScholarships } from '../services/firebase/scholarships';
 import ScholarshipCard from '../components/scholarship/ScholarshipCard';
 import LoadingSkeleton from '../components/common/LoadingSkeleton';
+import { AFRICAN_COUNTRIES, JOB_CATEGORIES as CATEGORIES } from '../constants';
 
 const FUNDING_TYPES = ['Full Funding', 'Partial Funding', 'Grant', 'Tuition Waiver'];
 
-const AFRICAN_COUNTRIES = [
-  'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Uganda', 'Tanzania',
-  'Ethiopia', 'Rwanda', 'Senegal', "Côte d'Ivoire", 'Cameroon',
-  'Zimbabwe', 'Zambia', 'Botswana', 'Namibia', 'Egypt', 'Morocco', 'Tunisia'
-];
 
 const HOST_COUNTRIES = [
   'UK', 'USA', 'Canada', 'Australia', 'Germany', 'France', 'China',
   'Netherlands', 'Sweden', 'Norway', 'Japan', 'South Korea', 'Worldwide'
 ];
 
-const CATEGORIES = [
-  'Engineering', 'Design', 'Marketing', 'STEM', 'Agriculture', 'Law', 'Media', 'Tech',
-  'Business', 'Accounting', 'Healthcare', 'Education', 'Social Work', 'Journalism',
-  'Arts & Entertainment', 'Data Science', 'Banking', 'NGO & Non-Profit', 'Other'
-];
 
 export default function Scholarships() {
   const [allScholarships, setAllScholarships] = useState([]);
