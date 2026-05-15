@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { FiX, FiAlignLeft, FiList } from 'react-icons/fi';
+import { AFRICAN_COUNTRIES, COUNTRY_FLAGS, JOB_CATEGORIES as CATEGORIES } from '../../constants';
 
-const AFRICAN_COUNTRIES = [
-  'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Uganda', 'Tanzania',
-  'Ethiopia', 'Rwanda', 'Senegal', "Côte d'Ivoire", 'Cameroon',
-  'Zimbabwe', 'Zambia', 'Botswana', 'Namibia', 'Egypt', 'Morocco', 'Tunisia'
-];
 
 const HOST_COUNTRIES = [
   'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Uganda',
@@ -13,27 +9,7 @@ const HOST_COUNTRIES = [
   'China', 'Netherlands', 'Sweden', 'Norway', 'Japan', 'South Korea', 'Worldwide'
 ];
 
-const COUNTRY_FLAGS = {
-  'Nigeria': '🇳🇬', 'Ghana': '🇬🇭', 'Kenya': '🇰🇪', 'South Africa': '🇿🇦',
-  'Uganda': '🇺🇬', 'Rwanda': '🇷🇼', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
-  'Senegal': '🇸🇳', 'Cameroon': '🇨🇲', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
-  'Botswana': '🇧🇼', 'Namibia': '🇳🇦', 'Egypt': '🇪🇬', 'Morocco': '🇲🇦',
-  'Tunisia': '🇹🇳', "Côte d'Ivoire": '🇨🇮', 'UK': '🇬🇧', 'USA': '🇺🇸',
-  'Canada': '🇨🇦', 'Australia': '🇦🇺', 'Germany': '🇩🇪', 'France': '🇫🇷',
-  'China': '🇨🇳', 'Netherlands': '🇳🇱', 'Sweden': '🇸🇪', 'Norway': '🇳🇴',
-  'Japan': '🇯🇵', 'South Korea': '🇰🇷', 'Worldwide': '🌍'
-};
 
-const CATEGORIES = [
-  'Engineering', 'Design', 'Marketing', 'Sales', 'Finance',
-  'Education', 'Healthcare', 'STEM', 'Agriculture', 'Law', 'Media', 'Tech',
-  'Business', 'Accounting', 'Human Resources', 'Logistics & Supply Chain',
-  'Hospitality & Tourism', 'Real Estate', 'Construction', 'Energy & Oil',
-  'NGO & Non-Profit', 'Government & Public Sector', 'Research & Development',
-  'Social Work', 'Journalism', 'Sports & Fitness', 'Arts & Entertainment',
-  'Information Technology', 'Cybersecurity', 'Data Science', 'Aviation',
-  'Banking', 'Insurance', 'Telecommunications', 'Other'
-];
 
 function SimpleEditor({ value, onChange, rows = 6, placeholder = '' }) {
   const ref = useRef(null);
