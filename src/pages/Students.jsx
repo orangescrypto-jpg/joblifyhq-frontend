@@ -5,6 +5,7 @@ import { getJobs } from '../services/firebase/jobs';
 import JobCard from '../components/job/JobCard';
 import LoadingSkeleton from '../components/common/LoadingSkeleton';
 import EmptyState from '../components/common/EmptyState';
+import { AFRICAN_COUNTRIES, JOB_CATEGORIES as CATEGORIES } from '../constants';
 
 const STUDENT_LEVELS = [
   { key: '', label: '🎓 All Student Roles' },
@@ -15,15 +16,7 @@ const STUDENT_LEVELS = [
   { key: 'Volunteer', label: '🤝 Volunteer' },
 ];
 
-const AFRICAN_COUNTRIES = [
-  'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Uganda', 'Tanzania',
-  'Ethiopia', 'Rwanda', 'Senegal', 'Cameroon', 'Egypt', 'Morocco'
-];
 
-const CATEGORIES = [
-  'Engineering', 'Design', 'Marketing', 'Finance',
-  'Education', 'Healthcare', 'STEM', 'Tech', 'Agriculture', 'Law', 'Media'
-];
 
 export default function Students() {
   const navigate = useNavigate();
