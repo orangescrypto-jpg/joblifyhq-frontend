@@ -11,22 +11,10 @@ import { getBlogs } from '../services/firebase/blog';
 import { getDocs, collection } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { FiDollarSign, FiTrendingUp } from 'react-icons/fi';
-
-function isWithin7Days(createdAt) {
-  if (!createdAt) return false;
-  const posted = createdAt?.seconds
-   ? new Date(createdAt.seconds * 1000)
-    : new Date(createdAt);
-  return (Date.now() - posted.getTime()) / (1000 * 60 * 60 * 24) <= 7;
-}
-
-const COUNTRY_FLAGS = {
-  'Nigeria': '🇳🇬', 'Ghana': '🇬🇭', 'Kenya': '🇰🇪', 'South Africa': '🇿🇦',
-  'Uganda': '🇺🇬', 'Rwanda': '🇷🇼', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
-  'Senegal': '🇸🇳', 'Cameroon': '🇨🇲', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
-  'Botswana': '🇧🇼', 'Namibia': '🇳🇦', 'Egypt': '🇪🇬', 'Morocco': '🇲🇦',
-  'Tunisia': '🇹🇳', "Côte d'Ivoire": '🇨🇮',
-};
+import {
+  CURRENCY_BY_COUNTRY, EXP_COLORS,
+  isWithin7Days, formatSalary,
+} from '../constants';
 
 const CURRENCY_BY_COUNTRY = {
   'Nigeria': { symbol: '₦' },
@@ -41,15 +29,7 @@ const CURRENCY_BY_COUNTRY = {
   'Morocco': { symbol: 'MAD' },
 };
 
-const EXP_COLORS = {
-  'Entry (0-2 yrs)': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  'Mid (3-5 yrs)': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  'Senior (5-10 yrs)': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  'Lead / Manager': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-};
-
-function formatSalary(min, max, country) {
-  const currency = CURRENCY_BY_COUNTRY[country] || { symbol: '₦' };
+;
   const fmt = (n) => {
     if (!n) return null;
     if (n >= 1000000) return `${currency.symbol}${(n / 1000000).toFixed(1)}M`;
