@@ -7,18 +7,6 @@ import {
   CITIES_BY_COUNTRY, EXPERIENCE_LEVELS, EXP_COLORS,
 } from '../constants';
 
-const CURRENCY_BY_COUNTRY = {
-  'Nigeria': { symbol: '₦', name: 'NGN' },
-  'Ghana': { symbol: 'GH₵', name: 'GHS' },
-  'Kenya': { symbol: 'KSh', name: 'KES' },
-  'South Africa': { symbol: 'R', name: 'ZAR' },
-  'Uganda': { symbol: 'USh', name: 'UGX' },
-  'Tanzania': { symbol: 'TSh', name: 'TZS' },
-  'Ethiopia': { symbol: 'Br', name: 'ETB' },
-  'Rwanda': { symbol: 'FRw', name: 'RWF' },
-  'Egypt': { symbol: 'E£', name: 'EGP' },
-  'Morocco': { symbol: 'MAD', name: 'MAD' },
-};
 
 export default function SalaryPortal() {
   const [salaries, setSalaries] = useState([]);
