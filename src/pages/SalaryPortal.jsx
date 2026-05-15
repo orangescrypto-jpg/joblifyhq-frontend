@@ -2,55 +2,10 @@ import { useEffect, useState } from 'react';
 import { FiDollarSign, FiMapPin, FiBriefcase, FiTrendingUp, FiSearch } from 'react-icons/fi';
 import { getDocs, collection } from 'firebase/firestore';
 import { db } from '../firebase/config';
-
-const AFRICAN_COUNTRIES = [
-  'Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Uganda', 'Tanzania',
-  'Ethiopia', 'Rwanda', 'Senegal', "Côte d'Ivoire", 'Cameroon',
-  'Zimbabwe', 'Zambia', 'Botswana', 'Namibia', 'Egypt', 'Morocco', 'Tunisia'
-];
-
-const COUNTRY_FLAGS = {
-  'Nigeria': '🇳🇬', 'Ghana': '🇬🇭', 'Kenya': '🇰🇪', 'South Africa': '🇿🇦',
-  'Uganda': '🇺🇬', 'Rwanda': '🇷🇼', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
-  'Senegal': '🇸🇳', 'Cameroon': '🇨🇲', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
-  'Botswana': '🇧🇼', 'Namibia': '🇳🇦', 'Egypt': '🇪🇬', 'Morocco': '🇲🇦',
-  'Tunisia': '🇹🇳', "Côte d'Ivoire": '🇨🇮',
-};
-
-const CITIES_BY_COUNTRY = {
-  'Nigeria':       ['Lagos', 'Abuja', 'Port Harcourt', 'Ibadan', 'Kano', 'Enugu', 'Kaduna', 'Benin City', 'Aba', 'Onitsha'],
-  'Ghana':         ['Accra', 'Kumasi', 'Tamale', 'Tema'],
-  'Kenya':         ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru'],
-  'South Africa':  ['Johannesburg', 'Cape Town', 'Durban', 'Pretoria', 'Port Elizabeth'],
-  'Uganda':        ['Kampala', 'Entebbe', 'Gulu'],
-  'Tanzania':      ['Dar es Salaam', 'Arusha', 'Mwanza'],
-  'Ethiopia':      ['Addis Ababa', 'Dire Dawa'],
-  'Rwanda':        ['Kigali'],
-  'Senegal':       ['Dakar', 'Thiès'],
-  "Côte d'Ivoire": ['Abidjan', 'Bouaké'],
-  'Cameroon':      ['Douala', 'Yaoundé'],
-  'Zimbabwe':      ['Harare', 'Bulawayo'],
-  'Zambia':        ['Lusaka', 'Ndola'],
-  'Botswana':      ['Gaborone', 'Francistown'],
-  'Namibia':       ['Windhoek'],
-  'Egypt':         ['Cairo', 'Alexandria', 'Giza'],
-  'Morocco':       ['Casablanca', 'Rabat', 'Marrakech', 'Fez'],
-  'Tunisia':       ['Tunis', 'Sfax'],
-};
-
-const EXPERIENCE_LEVELS = [
-  'Entry (0-2 yrs)',
-  'Mid (3-5 yrs)',
-  'Senior (5-10 yrs)',
-  'Lead / Manager',
-];
-
-const EXP_COLORS = {
-  'Entry (0-2 yrs)':  'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  'Mid (3-5 yrs)':    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  'Senior (5-10 yrs)':'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  'Lead / Manager':   'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-};
+import {
+  AFRICAN_COUNTRIES, COUNTRY_FLAGS, CURRENCY_BY_COUNTRY,
+  CITIES_BY_COUNTRY, EXPERIENCE_LEVELS, EXP_COLORS,
+} from '../constants';
 
 const CURRENCY_BY_COUNTRY = {
   'Nigeria': { symbol: '₦', name: 'NGN' },
