@@ -41,6 +41,7 @@ export const updateBlog = async (id, updates, userId) => {
   const blogRef = doc(db, 'blog', id);
   await updateDoc(blogRef, {
     ...updates,
+    published: updates.published ?? true, // ensure post is always visible
     updatedAt: Timestamp.now()
   });
 };
