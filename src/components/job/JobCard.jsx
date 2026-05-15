@@ -1,51 +1,20 @@
 import { Link } from 'react-router-dom';
 import { FiMapPin, FiDollarSign, FiGlobe } from 'react-icons/fi';
 import ShareButtons from '../blog/ShareButtons';
-
-const COUNTRY_FLAGS = {
-  'Nigeria': '🇳🇬', 'Ghana': '🇬🇭', 'Kenya': '🇰🇪', 'South Africa': '🇿🇦',
-  'Uganda': '🇺🇬', 'Rwanda': '🇷🇼', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
-  'Senegal': '🇸🇳', 'Cameroon': '🇨🇲', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
-  'Botswana': '🇧🇼', 'Namibia': '🇳🇦', 'Egypt': '🇪🇬', 'Morocco': '🇲🇦',
-  'Tunisia': '🇹🇳', "Côte d'Ivoire": '🇨🇮', 'Remote': '🌍',
-};
-
-function getFlag(location = '') {
-  for (const [country, flag] of Object.entries(COUNTRY_FLAGS)) {
-    if (location.toLowerCase().includes(country.toLowerCase())) return flag;
-  }
-  return '🌍';
-}
-
-function daysUntil(deadline) {
-  if (!deadline) return null;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const end = new Date(deadline);
-  if (isNaN(end)) return null;
-  return Math.ceil((end - today) / (1000 * 60 * 60 * 24));
-}
-
-// Active hiring = posted within last 7 days
-function isActivelyHiring(createdAt) {
-  if (!createdAt) return false;
-  const posted = createdAt?.seconds
-    ? new Date(createdAt.seconds * 1000)
-    : new Date(createdAt);
-  return (Date.now() - posted.getTime()) / (1000 * 60 * 60 * 24) <= 7;
-}
+import { getCountryFlag, daysUntil, isWithin7Days } from '../../constants';
 
 export default function JobCard({ job }) {
-  const flag = getFlag(job.location || job.country || '');
-  const days = daysUntil(job.deadline);
-  const activeHiring = isActivelyHiring(job.createdAt);
-  const shareUrl = `${window.location.origin}/jobs/${job.id}`;
+  const flag         = getCountryFlag(job.location || job.country || '');
+  const days         = daysUntil(job.deadline);
+  const activeHiring = isWithin7Days(job.createdAt);
+  const shareUrl     = `${window.location.origin}/jobs/${job.id}`;
 
   const urgencyLabel = () => {
     if (days === null) return null;
-    if (days < 0) return { text: 'Expired', color: 'bg-red-100 text-red-600' };
-    if (days === 0) return { text: 'Closes today!', color: 'bg-red-100 text-red-600' };
-    if (days <= 3) return { text: `Closes in ${days}d`, color: 'bg-orange-100 text-orange-600' };
-    if (days <= 7) return { text: `Closes in ${days}d`, color: 'bg-yellow-100 text-yellow-700' };
+    if (days < 0)  return { text: 'Expired',           color: 'bg-red-100 text-red-600' };
+    if (days === 0) return { text: 'Closes today!',     color: 'bg-red-100 text-red-600' };
+    if (days <= 3)  return { text: `Closes in ${days}d`, color: 'bg-orange-100 text-orange-600' };
+    if (days <= 7)  return { text: `Closes in ${days}d`, color: 'bg-yellow-100 text-yellow-700' };
     return null;
   };
 
